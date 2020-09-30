@@ -20,9 +20,6 @@ namespace filshareapp
             }).ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseUrls("http://*:14100").UseStartup<Startup>();
-            }).ConfigureServices((hostContext, services) =>
-            {
-                services.AddHostedService<Worker>();
             });
     }
 }
