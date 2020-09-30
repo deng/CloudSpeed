@@ -1,0 +1,34 @@
+/* Provide sufficient contrast against white background */
+a {
+  color: #0366d6;
+}
+
+code {
+  color: #E01A76;
+}
+
+/*
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+*/
+
+.site-layout-content {
+  background: #fff;
+  padding: 24px;
+  min-height: 280px;
+}
+
+.my-editor{
+  border:1px solid #d1d1d1;
+  border-radius:5px
+}
+
+.my-editor .bf-content{height:250px}
+
+.avatar-uploader > .ant-upload {
+  width: 128px;
+  height: 128px;
+}
