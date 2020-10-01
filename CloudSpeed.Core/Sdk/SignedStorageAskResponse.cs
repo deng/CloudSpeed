@@ -4,20 +4,6 @@ using RestSharp;
 
 namespace CloudSpeed.Sdk
 {
-    public class SignedStorageAskResponse
-    {
-        public StorageAsk Ask { get; set; }
-
-        public Signature Signature { get; set; }
-    }
-
-    public class Signature
-    {
-        public byte Type { get; set; }
-
-        public byte[] Data { get; set; }
-    }
-
     public class StorageAsk
     {
         public string Price { get; set; }

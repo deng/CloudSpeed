@@ -76,10 +76,10 @@ namespace CloudSpeed.Sdk
             return await ExecuteAsync<MinerInfo>(rb);
         }
 
-        public async Task<ResponseBase<SignedStorageAskResponse>> ClientQueryAsk(ClientQueryAskRequest model)
+        public async Task<ResponseBase<StorageAsk>> ClientQueryAsk(ClientQueryAskRequest model)
         {
             var rb = new RequestBase<string>() { Method = "Filecoin.ClientQueryAsk", ParamsData = new[] { model.PeerId, model.Miner } };
-            return await ExecuteAsync<SignedStorageAskResponse>(rb);
+            return await ExecuteAsync<StorageAsk>(rb);
         }
 
         public async Task<ResponseBase<QueryOffer[]>> ClientFindData(ClientFindDataRequest model)
@@ -106,6 +106,10 @@ namespace CloudSpeed.Sdk
             if (!data.Success)
             {
                 _logger.LogError(0, "{method} code:{code}, message:{message}", model.Method, data.Error.Code, data.Error.Message);
+            }
+            if (data.Result == null)
+            {
+                _logger.LogWarning(0, "{method} Content:{message}", model.Method, response.Content);
             }
             return data;
         }

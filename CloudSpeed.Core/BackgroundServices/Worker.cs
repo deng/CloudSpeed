@@ -119,7 +119,7 @@ namespace CloudSpeed.BackgroundServices
                             {
                                 DataCid = item.Root.Value,
                                 Miner = miner,
-                                Price = ask.Result.Ask.Price,
+                                Price = ask.Result.Price,
                                 Duration = minDealDuration
                             });
                             if (dealParams == null)
