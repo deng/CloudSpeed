@@ -22,5 +22,7 @@ namespace CloudSpeed.Entities
         public DbSet<FileCid> FileCids { get; set; }
 
         public DbSet<FileMd5> FileMd5s { get; set; }
+
+        public DbSet<FileJob> FileJobs { get; set; }
     }
 }

@@ -159,12 +159,28 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task UpdateFileCid(string Id, string cid, FileCidStatus status)
+        public async Task UpdateFileCid(string id, string cid, FileCidStatus status)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
-                await repository.UpdateFileCid(Id, cid, status);
+                await repository.UpdateFileCid(id, cid, status);
+                await repository.Commit();
+            }
+        }
+
+        public async Task CreateFileJob(string id, string cid, string jobId)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var entity = new FileJob()
+                {
+                    Id = id,
+                    Cid = cid,
+                    JobId = jobId
+                };
+                await repository.CreateFileJob(entity);
                 await repository.Commit();
             }
         }

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.13.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.31.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.32.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\ffs.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\ask.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\faults.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\miner.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\net.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\wallet.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+</Project>

@@ -1,3 +1,4 @@
 dotnet ef migrations add InitialCreate
 dotnet ef migrations add AddUpdatedToFileCids
 dotnet ef migrations add AddFileMd5s
+dotnet ef migrations add AddFileJobs

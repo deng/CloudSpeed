@@ -19,7 +19,7 @@ namespace CloudSpeed.Repositories
         Task CreateFileCid(FileCid entity);
 
         Task<bool> HasFileCid(string id);
-        
+
         Task<FileCid> GetFileCid(string id);
 
         Task<IList<FileCid>> GetFileCids(FileCidStatus status, int skip, int limit);
@@ -27,7 +27,9 @@ namespace CloudSpeed.Repositories
         Task UpdateFileCid(string Id, string cid, FileCidStatus status);
 
         Task CreateFileMd5(FileMd5 entity);
-        
+
         Task<FileMd5> GetFileMd5(string id);
+
+        Task CreateFileJob(FileJob entity);
     }
 }

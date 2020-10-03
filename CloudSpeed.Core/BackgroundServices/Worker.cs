@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
+using CloudSpeed.Powergate;
+using Google.Protobuf;
 
 namespace CloudSpeed.BackgroundServices
 {
@@ -16,14 +18,16 @@ namespace CloudSpeed.BackgroundServices
         private readonly ILogger<Worker> _logger;
         private readonly LotusClient _lotusClient;
         private readonly LotusClientSetting _lotusClientSetting;
-        private readonly CloudSpeedManager _CloudSpeedManager;
+        private readonly CloudSpeedManager _cloudSpeedManager;
+        private readonly PowergateClient _powergateClient;
 
-        public Worker(ILogger<Worker> logger, LotusClient lotusClient, LotusClientSetting lotusClientSetting, CloudSpeedManager CloudSpeedManager)
+        public Worker(ILogger<Worker> logger, LotusClient lotusClient, LotusClientSetting lotusClientSetting, CloudSpeedManager cloudSpeedManager, PowergateClient powergateClient)
         {
             _logger = logger;
             _lotusClient = lotusClient;
             _lotusClientSetting = lotusClientSetting;
-            _CloudSpeedManager = CloudSpeedManager;
+            _cloudSpeedManager = cloudSpeedManager;
+            _powergateClient = powergateClient;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,16 +39,47 @@ namespace CloudSpeed.BackgroundServices
                 int skip = 0;
                 while (true)
                 {
-                    var fileCids = await _CloudSpeedManager.GetFileCids(FileCidStatus.None, skip, limit);
+                    var fileCids = await _cloudSpeedManager.GetFileCids(FileCidStatus.None, skip, limit);
                     if (fileCids.Count() == 0)
                     {
                         break;
                     }
                     foreach (var fileCid in fileCids)
                     {
-                        var path = _CloudSpeedManager.GetStoragePath(fileCid.Id);
+                        var path = _cloudSpeedManager.GetStoragePath(fileCid.Id);
                         if (File.Exists(path))
                         {
+                            var cid = string.Empty;
+                            using (var stage = _powergateClient.Ffs.Stage())
+                            {
+                                using (var fsRead = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, UploadConstants.BigFileWriteSize, true))
+                                {
+                                    var buffer = new byte[UploadConstants.BigFileWriteSize];
+                                    var readCount = 0;
+                                    while ((readCount = await fsRead.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                                    {
+                                        await stage.RequestStream.WriteAsync(new Ffs.Rpc.StageRequest()
+                                        {
+                                            Chunk = ByteString.CopyFrom(buffer)
+                                        });
+                                    }
+                                }
+                                await stage.RequestStream.CompleteAsync();
+                                var response = await stage.ResponseAsync;
+                                if (response != null)
+                                {
+                                    cid = response.Cid;
+                                }
+                            }
+                            if (string.IsNullOrEmpty(cid))
+                            {
+                                await _cloudSpeedManager.UpdateFileCid(fileCid.Id, cid, FileCidStatus.Success);
+                                var psc = _powergateClient.Ffs.PushStorageConfig(new Ffs.Rpc.PushStorageConfigRequest { Cid = cid });
+                                var jobId = psc.JobId;
+                                await _cloudSpeedManager.CreateFileJob(fileCid.Id, cid, jobId);
+                            }
+
+                            /*
                             var result = await _lotusClient.ClientImport(new ClientImportRequest
                             {
                                 Path = path,
@@ -52,8 +87,9 @@ namespace CloudSpeed.BackgroundServices
                             });
                             if (result.Success)
                             {
-                                await _CloudSpeedManager.UpdateFileCid(fileCid.Id, result.Result.Root.Value, FileCidStatus.Success);
+                                await _cloudSpeedManager.UpdateFileCid(fileCid.Id, result.Result.Root.Value, FileCidStatus.Success);
                             }
+                            */
                         }
                     }
                     skip += limit;

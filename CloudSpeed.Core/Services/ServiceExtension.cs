@@ -1,4 +1,5 @@
 ﻿using CloudSpeed.Managers;
+using CloudSpeed.Powergate;
 using CloudSpeed.Repositories;
 using CloudSpeed.Sdk;
 using CloudSpeed.Web;
@@ -16,6 +17,7 @@ namespace CloudSpeed.Services
             services.UseRepositories();
             services.AddSingleton<IPanPasswordHasher, PanPasswordHasher>();
             services.AddSingleton<CloudSpeedManager>();
+            services.UsePowergateRrpcServices(configuration);
             return services;
         }
     }

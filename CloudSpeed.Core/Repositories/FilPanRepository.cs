@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using System.Runtime.InteropServices;
 
 namespace CloudSpeed.Repositories
 {
@@ -73,6 +74,11 @@ namespace CloudSpeed.Repositories
         public Task<FileMd5> GetFileMd5(string id)
         {
             return DbContext.FileMd5s.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+        public async Task CreateFileJob(FileJob entity)
+        {
+            await DbContext.FileJobs.AddAsync(entity);
         }
 
         public Task Commit()
