@@ -55,9 +55,9 @@ namespace CloudSpeed.Repositories
             return await DbContext.FileCids.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
-        public async Task UpdateFileCid(string Id, string cid, FileCidStatus status)
+        public async Task UpdateFileCid(string id, string cid, FileCidStatus status)
         {
-            var entity = await DbContext.FileCids.FirstOrDefaultAsync(a => a.Id == Id);
+            var entity = await DbContext.FileCids.FirstOrDefaultAsync(a => a.Id == id);
             if (entity != null)
             {
                 entity.Cid = cid;
@@ -79,6 +79,17 @@ namespace CloudSpeed.Repositories
         public async Task CreateFileJob(FileJob entity)
         {
             await DbContext.FileJobs.AddAsync(entity);
+        }
+
+        public async Task UpdateFileJob(string id, string jobId, FileJobStatus status)
+        {
+            var entity = await DbContext.FileJobs.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.JobId = jobId;
+                entity.Status = status;
+                entity.Updated = DateTime.Now;
+            }
         }
 
         public Task Commit()

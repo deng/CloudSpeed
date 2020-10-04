@@ -169,7 +169,7 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task CreateFileJob(string id, string cid, string jobId)
+        public async Task CreateFileJob(string id, string cid)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
@@ -177,10 +177,19 @@ namespace CloudSpeed.Managers
                 var entity = new FileJob()
                 {
                     Id = id,
-                    Cid = cid,
-                    JobId = jobId
+                    Cid = cid
                 };
                 await repository.CreateFileJob(entity);
+                await repository.Commit();
+            }
+        }
+
+        public async Task UpdateFileJob(string id, string jobId, FileJobStatus status)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileJob(id, jobId, status);
                 await repository.Commit();
             }
         }

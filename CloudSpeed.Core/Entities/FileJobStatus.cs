@@ -4,10 +4,12 @@ namespace CloudSpeed.Entities
     {
         None = 0,
 
-        Success = 1,
+        Processing = 1,
 
-        Failed = 2,
+        Success = 2,
 
-        Canceled = 3
+        Failed = 3,
+
+        Canceled = 4
     }
 }

@@ -31,5 +31,7 @@ namespace CloudSpeed.Repositories
         Task<FileMd5> GetFileMd5(string id);
 
         Task CreateFileJob(FileJob entity);
+        
+        Task UpdateFileJob(string id, string jobId, FileJobStatus status);
     }
 }
