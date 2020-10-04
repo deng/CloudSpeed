@@ -2,6 +2,14 @@
 {
     public class PowergateSetting
     {
-        public string Url { get; set; }
+        public string ServerAddress { get; set; }
+
+        public string RootCertificates { get; set; }
+
+        public string ClientCert { get; set; }
+
+        public string ClientKey { get; set; }
+
+        public string BotToken { get; set; }
     }
 }
