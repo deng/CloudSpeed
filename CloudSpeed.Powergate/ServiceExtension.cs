@@ -1,6 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Grpc.Core;
+using Grpc.Net.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace CloudSpeed.Powergate
 {
@@ -10,35 +14,45 @@ namespace CloudSpeed.Powergate
         {
             var setting = configuration.GetSection(nameof(PowergateSetting)).Get<PowergateSetting>();
 
-            if (setting == null || string.IsNullOrEmpty(setting.Url))
+            if (setting == null || string.IsNullOrEmpty(setting.ServerAddress))
                 throw new ApplicationException("please setup /PowergateSetting at appsettings.json");
 
-            services.AddGrpcClient<Index.Ask.Rpc.RPCService.RPCServiceClient>("IndexAskRPCServiceClient", options =>
-             {
-                 options.Address = new Uri(setting.Url);
-             });
-            services.AddGrpcClient<Index.Faults.Rpc.RPCService.RPCServiceClient>("IndexFaultsRPCServiceClient", options =>
-            {
-                options.Address = new Uri(setting.Url);
-            });
-            services.AddGrpcClient<Index.Miner.Rpc.RPCService.RPCServiceClient>("IndexMinerRPCServiceClient", options =>
-            {
-                options.Address = new Uri(setting.Url);
-            });
-            services.AddGrpcClient<Ffs.Rpc.RPCService.RPCServiceClient>("FfsRPCServiceClient", options =>
-            {
-                options.Address = new Uri(setting.Url);
-            });
-            services.AddGrpcClient<Net.Rpc.RPCService.RPCServiceClient>("NetRPCServiceClient", options =>
-            {
-                options.Address = new Uri(setting.Url);
-            });
-            services.AddGrpcClient<Wallet.Rpc.RPCService.RPCServiceClient>("WalletRPCServiceClient", options =>
-            {
-                options.Address = new Uri(setting.Url);
-            });
+            var channel = CreateChannel(setting);
+
+            services.AddTransient(sp => new Index.Ask.Rpc.RPCService.RPCServiceClient(channel));
+            services.AddTransient(sp => new Index.Faults.Rpc.RPCService.RPCServiceClient(channel));
+            services.AddTransient(sp => new Index.Miner.Rpc.RPCService.RPCServiceClient(channel));
+            services.AddTransient(sp => new Ffs.Rpc.RPCService.RPCServiceClient(channel));
+            services.AddTransient(sp => new Net.Rpc.RPCService.RPCServiceClient(channel));
+            services.AddTransient(sp => new Wallet.Rpc.RPCService.RPCServiceClient(channel));
+
             services.AddTransient<PowergateClient>();
             return services;
+        }
+
+        private static Channel CreateChannel(PowergateSetting setting)
+        {
+            var uri = new Uri(setting.ServerAddress);
+            var options = new List<ChannelOption>();
+            if (!string.IsNullOrEmpty(setting.BotToken))
+            {
+                options.Add(new ChannelOption("X-ffs-Token", setting.BotToken));
+            }
+            if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
+            {
+                if(string.IsNullOrEmpty(setting.RootCertificates) || string.IsNullOrEmpty(setting.ClientKey) || string.IsNullOrEmpty(setting.ClientCert))
+                    throw new ApplicationException("please setup /PowergateSetting/RootCertificates,ClientKey,ClientCert at appsettings.json");
+                
+                string serverCa = File.ReadAllText(setting.RootCertificates);
+                string clientKey = File.ReadAllText(setting.ClientKey);
+                string clientCert = File.ReadAllText(setting.ClientCert);
+                var creds = new SslCredentials(serverCa, new KeyCertificatePair(clientCert, clientKey));
+                return new Channel(uri.Host, uri.Port, creds, options);
+            }
+            else
+            {
+                return new Channel(uri.Host, uri.Port, ChannelCredentials.Insecure, options);
+            }
         }
     }
 }
