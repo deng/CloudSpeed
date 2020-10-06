@@ -58,6 +58,12 @@ namespace CloudSpeed.Sdk
             return await ExecuteAsync(rb);
         }
 
+        public async Task<ResponseBase<ClientGetDealInfoReponse>> ClientGetDealInfo(Cid model)
+        {
+            var rb = new RequestBase<Cid>() { ParamsData = new[] { model }, Method = "Filecoin.ClientGetDealInfo" };
+            return await ExecuteAsync<ClientGetDealInfoReponse>(rb);
+        }
+
         public async Task<ResponseBase<Cid>> ClientStartDeal(ClientStartDealParams model)
         {
             var rb = new RequestBase<ClientStartDealParams>() { Method = "Filecoin.ClientStartDeal", ParamsData = new[] { model } };
@@ -99,7 +105,19 @@ namespace CloudSpeed.Sdk
             var response = await client.ExecuteAsync(request);
             if (!response.IsSuccessful)
             {
-                _logger.LogError(0, "{method} code:{code}, message:{message}", model.Method, response.StatusCode, response.Content);
+                _logger.LogError(0, "{method} fail:", model.Method);
+                if (!string.IsNullOrEmpty(response.Content))
+                {
+                    _logger.LogError(0, "content: {content}", response.Content);
+                }
+                if (!string.IsNullOrEmpty(response.ErrorMessage))
+                {
+                    _logger.LogError(0, "error message: {message}", response.ErrorMessage);
+                }
+                if (response.StatusCode > 0)
+                {
+                    _logger.LogError(0, "status code: {code}", response.StatusCode);
+                }
                 return ResponseBase<T>.Fail((int)response.StatusCode, response.StatusDescription);
             }
             var data = JsonConvert.DeserializeObject<ResponseBase<T>>(response.Content);

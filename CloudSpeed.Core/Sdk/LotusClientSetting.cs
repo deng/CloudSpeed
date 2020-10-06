@@ -15,11 +15,18 @@ namespace CloudSpeed.Sdk
 
         public LotusMinerSetting[] Miners { get; set; }
 
+        public bool Enabled { get; set; }
+
         public string GetMinerByFileSize(long size)
         {
+            if (Miners == null || Miners.Length == 0)
+                return string.Empty;
             var sectorSize = string.Empty;
             var orderedMiners = Miners.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
-            return orderedMiners.Length > 0 ? orderedMiners.FirstOrDefault().Miner : string.Empty;
+            if (orderedMiners.Length > 0)
+                return orderedMiners.FirstOrDefault().Miner;
+            else
+                return Miners.OrderByDescending(m => m.SectorSizeInBytes).First().Miner;
         }
     }
 
