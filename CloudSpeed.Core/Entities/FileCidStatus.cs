@@ -9,6 +9,8 @@ namespace CloudSpeed.Entities
     {
         None = 0,
 
-        Success = 1
+        Success = 1,
+
+        Failed = 2
     }
 }

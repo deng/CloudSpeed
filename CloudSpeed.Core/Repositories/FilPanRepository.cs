@@ -50,6 +50,11 @@ namespace CloudSpeed.Repositories
             return DbContext.FileCids.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
         }
 
+        public Task<FileCid> GetFileCidsByCid(string cid)
+        {
+            return DbContext.FileCids.AsNoTracking().FirstOrDefaultAsync(a => a.Cid == cid);
+        }
+
         public async Task<IList<FileCid>> GetFileCids(FileCidStatus status, int skip, int limit)
         {
             return await DbContext.FileCids.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
@@ -66,6 +71,17 @@ namespace CloudSpeed.Repositories
             }
         }
 
+        public async Task UpdateFileCid(string id, FileCidStatus status, string error)
+        {
+            var entity = await DbContext.FileCids.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.Status = status;
+                entity.Error = error;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
         public async Task CreateFileMd5(FileMd5 entity)
         {
             await DbContext.FileMd5s.AddAsync(entity);
@@ -74,6 +90,16 @@ namespace CloudSpeed.Repositories
         public Task<FileMd5> GetFileMd5(string id)
         {
             return DbContext.FileMd5s.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+        public Task<bool> HasFileMd5(string id)
+        {
+            return DbContext.FileMd5s.AnyAsync(a => a.Id == id);
+        }
+
+        public async Task<IList<FileJob>> GetFileJobs(FileJobStatus status, int skip, int limit)
+        {
+            return await DbContext.FileJobs.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
         public async Task CreateFileJob(FileJob entity)
@@ -88,6 +114,50 @@ namespace CloudSpeed.Repositories
             {
                 entity.JobId = jobId;
                 entity.Status = status;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
+        public async Task UpdateFileJob(string id, FileJobStatus status, string error)
+        {
+            var entity = await DbContext.FileJobs.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.Status = status;
+                entity.Error = error;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
+        public async Task<IList<FileDeal>> GetFileDeals(FileDealStatus status, int skip, int limit)
+        {
+            return await DbContext.FileDeals.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
+        }
+
+        public async Task CreateFileDeal(FileDeal entity)
+        {
+            await DbContext.FileDeals.AddAsync(entity);
+        }
+
+        public async Task UpdateFileDeal(string id, string miner, string dealId, FileDealStatus status)
+        {
+            var entity = await DbContext.FileDeals.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.Status = status;
+                entity.Miner = miner;
+                entity.DealId = dealId;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
+        public async Task UpdateFileDeal(string id, FileDealStatus status, string error)
+        {
+            var entity = await DbContext.FileDeals.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.Status = status;
+                entity.Error = error;
                 entity.Updated = DateTime.Now;
             }
         }

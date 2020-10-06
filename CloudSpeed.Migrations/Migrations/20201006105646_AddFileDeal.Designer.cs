@@ -3,14 +3,16 @@ using System;
 using CloudSpeed.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CloudSpeed.Migrations.Migrations
 {
     [DbContext(typeof(CloudSpeedDbContext))]
-    partial class CloudSpeedDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201006105646_AddFileDeal")]
+    partial class AddFileDeal
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

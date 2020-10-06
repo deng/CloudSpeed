@@ -3,14 +3,16 @@ using System;
 using CloudSpeed.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CloudSpeed.Migrations.Migrations
 {
     [DbContext(typeof(CloudSpeedDbContext))]
-    partial class CloudSpeedDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201005203102_AlterFileJobs2")]
+    partial class AlterFileJobs2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -48,50 +50,6 @@ namespace CloudSpeed.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("dt_file_cid");
-                });
-
-            modelBuilder.Entity("CloudSpeed.Entities.FileDeal", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnName("id")
-                        .HasColumnType("TEXT")
-                        .HasMaxLength(36);
-
-                    b.Property<string>("Cid")
-                        .HasColumnName("name")
-                        .HasColumnType("TEXT")
-                        .HasMaxLength(512);
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnName("created")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DealId")
-                        .HasColumnName("deal_id")
-                        .HasColumnType("TEXT")
-                        .HasMaxLength(512);
-
-                    b.Property<string>("Error")
-                        .HasColumnName("error")
-                        .HasColumnType("TEXT")
-                        .HasMaxLength(2048);
-
-                    b.Property<string>("Miner")
-                        .HasColumnName("miner")
-                        .HasColumnType("TEXT")
-                        .HasMaxLength(18);
-
-                    b.Property<byte>("Status")
-                        .HasColumnName("status")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnName("updated")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("dt_file_deal");
                 });
 
             modelBuilder.Entity("CloudSpeed.Entities.FileJob", b =>

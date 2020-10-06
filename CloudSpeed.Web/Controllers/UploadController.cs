@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using CloudSpeed.Services;
 using CloudSpeed.Managers;
+using CloudSpeed.Settings;
 
 namespace filshareapp.Controllers
 {
@@ -19,15 +20,13 @@ namespace filshareapp.Controllers
     public class UploadController : ApiControllerBase
     {
         private readonly ILogger<UploadController> _logger;
-        private readonly LotusClient _lotusClient;
-        private readonly LotusClientSetting _lotusClientSetting;
+        private readonly UploadSetting _uploadSetting;
         private readonly CloudSpeedManager _CloudSpeedManager;
 
-        public UploadController(ILogger<UploadController> logger, LotusClient lotusClient, LotusClientSetting lotusClientSetting, CloudSpeedManager CloudSpeedManager)
+        public UploadController(ILogger<UploadController> logger, UploadSetting uploadSetting, CloudSpeedManager CloudSpeedManager)
         {
             _logger = logger;
-            _lotusClient = lotusClient;
-            _lotusClientSetting = lotusClientSetting;
+            _uploadSetting = uploadSetting;
             _CloudSpeedManager = CloudSpeedManager;
         }
 
@@ -52,16 +51,15 @@ namespace filshareapp.Controllers
             if (item == null)
                 return Result(ApiResponse.BadRequestResult("please select file to upload"));
             var path = GetBigStoragePath(item.Item1);
-            var size = new FileInfo(path).Length;
-            var hasMiner = _lotusClientSetting.GetMinerByFileSize(size);
-            if (string.IsNullOrEmpty(hasMiner))
+            var fileSize = new FileInfo(path).Length;
+            if (_uploadSetting.MaxFileSize > 0 && fileSize > _uploadSetting.MaxFileSize)
             {
                 System.IO.File.Delete(path);
                 return Result(ApiResponse.BadRequestResult("file too large"));
             }
             else
             {
-                var hashFileMd5 = await _CloudSpeedManager.GetFileMd5(item.Item1);
+                var hashFileMd5 = await _CloudSpeedManager.GetFileMd5ByDataKey(item.Item1);
                 if (hashFileMd5.Success)
                 {
                     System.IO.File.Delete(path);
@@ -69,7 +67,7 @@ namespace filshareapp.Controllers
                 }
                 else
                 {
-                    await _CloudSpeedManager.CreateFileMd5(item.Item1);
+                    await _CloudSpeedManager.CreateFileMd5ByDataKey(item.Item1);
                     await _CloudSpeedManager.CreateFileName(item.Item1, item.Item2);
                     return Ok(item.Item1);
                 }

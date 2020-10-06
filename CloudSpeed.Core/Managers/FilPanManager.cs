@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using CloudSpeed.Web.Responses;
 using CloudSpeed.Web.Models;
 using CloudSpeed.Web.Requests;
+using CloudSpeed.Sdk;
 
 namespace CloudSpeed.Managers
 {
@@ -127,12 +128,12 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task<ApiResponse<string>> CreateFileName(string item1, string item2)
+        public async Task<ApiResponse<string>> CreateFileName(string id, string name)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
-                var entity = new FileName() { Id = item1, Name = item2 };
+                var entity = new FileName() { Id = id, Name = name };
                 await repository.CreateFileName(entity);
                 await repository.Commit();
                 return ApiResponse.Ok(entity.Id);
@@ -159,6 +160,17 @@ namespace CloudSpeed.Managers
             }
         }
 
+        public async Task<FileCid> GetFileCidByCid(string cid)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var fileCid = await repository.GetFileCidsByCid(cid);
+                return fileCid;
+            }
+        }
+
+
         public async Task UpdateFileCid(string id, string cid, FileCidStatus status)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
@@ -169,18 +181,38 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task CreateFileJob(string id, string cid)
+        public async Task UpdateFileCid(string id, FileCidStatus status, string error = "")
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileCid(id, status, error);
+                await repository.Commit();
+            }
+        }
+
+        public async Task<IList<FileJob>> GetFileJobs(FileJobStatus status, int skip, int limit)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var fileJobs = await repository.GetFileJobs(status, skip, limit);
+                return fileJobs;
+            }
+        }
+
+        public async Task<string> CreateFileJob(string cid)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
                 var entity = new FileJob()
                 {
-                    Id = id,
                     Cid = cid
                 };
                 await repository.CreateFileJob(entity);
                 await repository.Commit();
+                return entity.Id;
             }
         }
 
@@ -190,6 +222,61 @@ namespace CloudSpeed.Managers
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
                 await repository.UpdateFileJob(id, jobId, status);
+                await repository.Commit();
+            }
+        }
+
+        public async Task UpdateFileJob(string id, FileJobStatus status, string error = "")
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileJob(id, status, error);
+                await repository.Commit();
+            }
+        }
+
+        public async Task<IList<FileDeal>> GetFileDeals(FileDealStatus status, int skip, int limit)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var fileJobs = await repository.GetFileDeals(status, skip, limit);
+                return fileJobs;
+            }
+        }
+
+        public async Task<string> CreateFileDeal(string cid)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var entity = new FileDeal()
+                {
+                    Cid = cid
+                };
+                await repository.CreateFileDeal(entity);
+                await repository.Commit();
+                return entity.Id;
+            }
+        }
+
+        public async Task UpdateFileDeal(string id, string miner, string dealId, FileDealStatus status)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileDeal(id, miner, dealId, status);
+                await repository.Commit();
+            }
+        }
+
+        public async Task UpdateFileDeal(string id, FileDealStatus status, string error = "")
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileDeal(id, status, error);
                 await repository.Commit();
             }
         }
@@ -211,12 +298,25 @@ namespace CloudSpeed.Managers
             return fullPath;
         }
 
-        public async Task<ApiResponse<FileMd5>> GetFileMd5(string key)
+        public async Task<bool> CheckFileMd5ById(string id)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var hasEntity = await repository.HasFileMd5(id);
+                return hasEntity;
+            }
+        }
+
+        public async Task<ApiResponse<FileMd5>> GetFileMd5ByDataKey(string key)
         {
             var path = GetStoragePath(key);
             if (!File.Exists(path))
                 return ApiResponse.NotFound<FileMd5>("file not exists");
             var md5 = GetMD5HashFromFile(path);
+            if (string.IsNullOrEmpty(md5))
+                return ApiResponse.NotFound<FileMd5>("file md5 failed");
+
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
@@ -228,12 +328,14 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task<ApiResponse<string>> CreateFileMd5(string key)
+        public async Task<ApiResponse<string>> CreateFileMd5ByDataKey(string key)
         {
             var path = GetStoragePath(key);
             if (!File.Exists(path))
                 return ApiResponse.NotFound<string>("file not exists");
             var md5 = GetMD5HashFromFile(path);
+            if (string.IsNullOrEmpty(md5))
+                return ApiResponse.NotFound<string>("file md5 failed");
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
@@ -241,6 +343,17 @@ namespace CloudSpeed.Managers
                 await repository.CreateFileMd5(entity);
                 await repository.Commit();
                 return ApiResponse.Ok<string>(entity.Id);
+            }
+        }
+
+        public async Task CreateFileMd5(string id, string dataKey)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var entity = new FileMd5() { Id = id, DataKey = dataKey };
+                await repository.CreateFileMd5(entity);
+                await repository.Commit();
             }
         }
 
@@ -262,9 +375,9 @@ namespace CloudSpeed.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception("GetMD5HashFromFile() fail,error:" + ex.Message);
+                return string.Empty;
             }
         }
     }

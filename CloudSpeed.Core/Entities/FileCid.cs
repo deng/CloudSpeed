@@ -19,6 +19,10 @@ namespace CloudSpeed.Entities
         [Column("status")]
         public FileCidStatus Status { get; set; } = FileCidStatus.None;
 
+        [Column("error")]
+        [StringLength(StringLengthConstants.StringLengthError)]
+        public string Error { get; set; }
+
         [Column("created")]
         public DateTime Created { get; set; } = DateTime.Now;
         

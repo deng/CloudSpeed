@@ -13,5 +13,9 @@ namespace CloudSpeed
         public const int StringLengthName = 1024;
 
         public const int StringLengthCid = 512;
+
+        public const int StringLengthError = 2048;
+
+        public const int StringLengthMiner = 18;
     }
 }

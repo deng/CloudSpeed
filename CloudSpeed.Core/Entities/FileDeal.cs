@@ -5,8 +5,8 @@ using CloudSpeed.Services;
 
 namespace CloudSpeed.Entities
 {
-    [Table("dt_file_job")]
-    public class FileJob
+    [Table("dt_file_deal")]
+    public class FileDeal
     {
         [Column("id")]
         [StringLength(StringLengthConstants.StringLengthObjectId)]
@@ -16,12 +16,16 @@ namespace CloudSpeed.Entities
         [StringLength(StringLengthConstants.StringLengthCid)]
         public string Cid { get; set; }
 
-        [Column("job_id")]
+        [Column("deal_id")]
         [StringLength(StringLengthConstants.StringLengthCid)]
-        public string JobId { get; set; }
+        public string DealId { get; set; }
+        
+        [Column("miner")]
+        [StringLength(StringLengthConstants.StringLengthMiner)]
+        public string Miner { get; set; }
 
         [Column("status")]
-        public FileJobStatus Status { get; set; } = FileJobStatus.None;
+        public FileDealStatus Status { get; set; } = FileDealStatus.None;
 
         [Column("error")]
         [StringLength(StringLengthConstants.StringLengthError)]

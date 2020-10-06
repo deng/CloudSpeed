@@ -11,5 +11,7 @@
         public string ClientKey { get; set; }
 
         public string BotToken { get; set; }
+
+        public bool Enabled { get; set; }
     }
 }

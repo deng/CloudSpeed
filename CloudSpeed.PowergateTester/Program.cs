@@ -19,8 +19,11 @@ namespace CloudSpeed.PowergateTester
                 var powergateClient = serviceProvider.GetService<PowergateClient>();
                 var addrs = powergateClient.Net.ListenAddr(new Net.Rpc.ListenAddrRequest());
                 Console.WriteLine("powergate net info:");
-                Console.WriteLine("id: {id}", addrs.AddrInfo.Id);
-                Console.WriteLine("addrs: {addrs}", string.Join(',', addrs.AddrInfo.Addrs));
+                Console.WriteLine("net id: {0}", addrs.AddrInfo.Id);
+                Console.WriteLine("net addrs: {0}", string.Join(',', addrs.AddrInfo.Addrs));
+                var botaddrs = powergateClient.Ffs.Addrs(new Ffs.Rpc.AddrsRequest(), powergateClient.BotXFfsToken);
+                Console.WriteLine("powergate ffs addrs:");
+                Console.WriteLine("ffs addrs: {0}", Newtonsoft.Json.JsonConvert.SerializeObject(botaddrs));
             }
             catch (Exception ex)
             {

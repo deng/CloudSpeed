@@ -27,6 +27,7 @@ namespace CloudSpeed.Powergate
             services.AddTransient(sp => new Wallet.Rpc.RPCService.RPCServiceClient(channel));
 
             services.AddTransient<PowergateClient>();
+            services.AddSingleton<PowergateSetting>(setting);
             return services;
         }
 
@@ -34,10 +35,6 @@ namespace CloudSpeed.Powergate
         {
             var uri = new Uri(setting.ServerAddress);
             var options = new List<ChannelOption>();
-            if (!string.IsNullOrEmpty(setting.BotToken))
-            {
-                options.Add(new ChannelOption("X-ffs-Token", setting.BotToken));
-            }
             if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
             {
                 if(string.IsNullOrEmpty(setting.RootCertificates) || string.IsNullOrEmpty(setting.ClientKey) || string.IsNullOrEmpty(setting.ClientCert))
