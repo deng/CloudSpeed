@@ -44,6 +44,7 @@ namespace CloudSpeed.BackgroundServices
                             var fileCids = await _cloudSpeedManager.GetFileCids(FileCidStatus.None, skip, limit);
                             if (fileCids.Count() == 0)
                             {
+                                _logger.LogInformation(0, "file cid empty with status none");
                                 break;
                             }
                             foreach (var fileCid in fileCids)
@@ -83,6 +84,7 @@ namespace CloudSpeed.BackgroundServices
                     await Task.Delay(1000, stoppingToken);
                     //check for none deals
                     {
+                        _logger.LogInformation("check for none deals");
                         int limit = 10;
                         int skip = 0;
                         while (true)
@@ -90,8 +92,10 @@ namespace CloudSpeed.BackgroundServices
                             var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.None, skip, limit);
                             if (fileDeals.Count() == 0)
                             {
+                                _logger.LogInformation("file deal empty with status none");
                                 break;
                             }
+                            _logger.LogInformation("found file {count} deals", fileDeals.Count());
                             foreach (var fileDeal in fileDeals)
                             {
                                 await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, stoppingToken);
@@ -109,6 +113,7 @@ namespace CloudSpeed.BackgroundServices
                             var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.Processing, skip, limit);
                             if (fileDeals.Count() == 0)
                             {
+                                _logger.LogInformation("file deal empty with status procesing");
                                 break;
                             }
                             foreach (var fileDeal in fileDeals)
@@ -121,23 +126,28 @@ namespace CloudSpeed.BackgroundServices
                                     var dealInfo = await lotusClient.ClientGetDealInfo(new Cid { Value = fileDeal.DealId });
                                     if (!dealInfo.Success || dealInfo.Result == null)
                                     {
-                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1}", fileDeal.Cid, fileDeal.DealId, dealInfo.Error));
+                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Error));
                                         continue;
                                     }
 
-                                    if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
+                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
                                         dealInfo.Result.State == StorageDealStatus.StorageDealProposalNotFound ||
                                         dealInfo.Result.State == StorageDealStatus.StorageDealProposalRejected)
                                     {
-                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
+                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                         await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Failed, dealInfo.Result.Message ?? dealInfo.Result.State.ToString());
                                         continue;
                                     }
 
-                                    if (dealInfo.Result.State == StorageDealStatus.StorageDealActive)
+                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealActive)
                                     {
-                                        _logger.LogInformation(0, string.Format("lotus client deal active: {0} {1}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
+                                        _logger.LogInformation(string.Format("lotus client deal active: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                         await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Success);
+                                    }
+
+                                    else
+                                    {
+                                        _logger.LogInformation(string.Format("lotus client deal status: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                     }
                                 }
                                 catch (System.Exception ex)
@@ -175,47 +185,71 @@ namespace CloudSpeed.BackgroundServices
                     await _cloudSpeedManager.UpdateFileDeal(fdId, FileDealStatus.Failed, "file not found");
                     return;
                 }
-
+                _logger.LogInformation("query file length: {path}", fileFullPath);
                 var fileSize = new FileInfo(fileFullPath).Length;
                 var miner = _lotusClientSetting.GetMinerByFileSize(fileSize);
-                if (string.IsNullOrEmpty(miner))
+                if (miner == null)
                 {
                     _logger.LogError(0, string.Format("can't found any miner for :{0} {1}.", cid, fileSize));
                     return;
                 }
 
-                var minerInfo = await lotusClient.StateMinerInfo(new StateMinerInfoRequest { Miner = miner });
+                var minerInfo = await lotusClient.StateMinerInfo(new StateMinerInfoRequest { Miner = miner.Miner });
                 if (!minerInfo.Success)
                 {
+                    _logger.LogError(0, string.Format("can't get state info from :{0}.", miner));
                     return;
                 }
-                var ask = await lotusClient.ClientQueryAsk(new ClientQueryAskRequest
+                var askingPrice = miner.AskingPrice;
+                if (askingPrice == 0)
                 {
-                    PeerId = minerInfo.Result.PeerId,
-                    Miner = miner
-                });
-                if (!ask.Success)
-                {
-                    return;
+                    var ask = await lotusClient.ClientQueryAsk(new ClientQueryAskRequest
+                    {
+                        PeerId = minerInfo.Result.PeerId,
+                        Miner = miner.Miner
+                    });
+                    if (!ask.Success)
+                    {
+                        _logger.LogError(0, string.Format("can't query ask from :{0} {1}.", minerInfo.Result.PeerId, miner));
+                        return;
+                    }
+                    if (!decimal.TryParse(ask.Result.Price, out decimal arp))
+                    {
+                        _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
+                        return;
+                    }
+                    askingPrice = arp;
+                    if (askingPrice == 0)
+                    {
+                        _logger.LogError(0, "asking price should be more than zero.");
+                        return;
+                    }
                 }
                 var minDealDuration = 180 * LotusConstants.EpochsInDay;
-                var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, new ClientStartDealRequest
+                var dealRequest = new ClientStartDealRequest
                 {
                     DataCid = cid,
-                    Miner = miner,
-                    Price = ask.Result.Price,
+                    Miner = miner.Miner,
+                    Price = askingPrice.ToString(),//Price per GiB
                     Duration = minDealDuration
-                });
+                };
+                var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, dealRequest);
                 if (dealParams == null)
                 {
+                    _logger.LogError(0, string.Format("CreateTTGraphsyncClientStartDealParams empty."));
                     return;
                 }
+                _logger.LogInformation("lotus client start dealing: {dataCid} (datacid) {miner} {price} {duration}", cid, miner, dealRequest.Price, dealRequest.Duration);
                 var dealCid = await lotusClient.ClientStartDeal(dealParams);
                 if (dealCid.Success)
                 {
                     var did = dealCid.Result.Value;
-                    _logger.LogInformation("lot client start deal result: {datacid}(datacid) - {dealcid} (dealcid)", cid, did);
-                    await _cloudSpeedManager.UpdateFileDeal(fdId, miner, did, FileDealStatus.Processing);
+                    _logger.LogInformation("lotus client start deal result: {datacid}(datacid) - {dealcid} (dealcid) {price} {duration}", cid, did, dealRequest.Price, dealRequest.Duration);
+                    await _cloudSpeedManager.UpdateFileDeal(fdId, miner.Miner, did, FileDealStatus.Processing);
+                }
+                else
+                {
+                    _logger.LogError(0, "lotus client start deal failed: {datacid}(datacid) - (errorMessage)", cid, dealCid.Error.Message);
                 }
             }
             catch (System.Exception ex)
@@ -235,6 +269,7 @@ namespace CloudSpeed.BackgroundServices
             var walletAddress = await lotusClient.WalletDefaultAddress();
             if (!walletAddress.Success)
             {
+                _logger.LogError(0, "can't get wallet default address.");
                 return null;
             }
             var dealParams = new ClientStartDealParams()

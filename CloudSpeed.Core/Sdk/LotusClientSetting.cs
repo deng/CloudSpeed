@@ -17,16 +17,16 @@ namespace CloudSpeed.Sdk
 
         public bool Enabled { get; set; }
 
-        public string GetMinerByFileSize(long size)
+        public LotusMinerSetting GetMinerByFileSize(long size)
         {
             if (Miners == null || Miners.Length == 0)
-                return string.Empty;
+                return null;
             var sectorSize = string.Empty;
             var orderedMiners = Miners.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
             if (orderedMiners.Length > 0)
-                return orderedMiners.FirstOrDefault().Miner;
+                return orderedMiners.FirstOrDefault();
             else
-                return Miners.OrderByDescending(m => m.SectorSizeInBytes).First().Miner;
+                return Miners.OrderByDescending(m => m.SectorSizeInBytes).First();
         }
     }
 
@@ -35,6 +35,8 @@ namespace CloudSpeed.Sdk
         public string Miner { get; set; }
 
         public string SectorSize { get; set; }
+
+        public decimal AskingPrice { get; set; }
 
         public long SectorSizeInBytes
         {
