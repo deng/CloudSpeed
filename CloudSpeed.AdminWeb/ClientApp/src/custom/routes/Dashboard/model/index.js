@@ -21,25 +21,29 @@ export default modelEnhance({
     }
   },
   effects: {
-    // 进入页面加载
-    *init({ payload }, { call, put, select }) {
-      const { pageData } = yield select(state => state.dashboard);
+    *init({ }, { put }) {
       yield put({
-        type: 'getPageInfo',
-        payload: {
-          pageData: pageData.startPage(1, 10)
-        }
+        type: 'getJobsInfo',
+      });
+      yield put({
+        type: 'getDealsInfo',
       });
     },
-    // 获取分页数据
-    *getPageInfo({ payload }, { call, put }) {
-      const { pageData } = payload;
+    *getJobsInfo({ }, { put }) {
       yield put({
         type: '@request',
         payload: {
-          valueField: 'pageData',
-          url: '/miners/list',
-          pageInfo: pageData
+          valueField: 'jobsData',
+          url: '/dashboard/jobs',
+        }
+      });
+    },
+    *getDealsInfo({ }, { put }) {
+      yield put({
+        type: '@request',
+        payload: {
+          valueField: 'dealsData',
+          url: '/dashboard/deals',
         }
       });
     },

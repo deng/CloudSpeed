@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CloudSpeed.AdminWeb.Requests
 {
-    public class FilesImportRequest
+    public class ImportsCreateRequest
     {
         [Required]
         public string StoragePath { get; set; }

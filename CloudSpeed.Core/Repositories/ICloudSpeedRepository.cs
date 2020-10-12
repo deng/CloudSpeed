@@ -38,6 +38,12 @@ namespace CloudSpeed.Repositories
 
         Task<IList<FileJob>> GetFileJobs(FileJobStatus status, int skip, int limit);
 
+        Task<IDictionary<FileJobStatus, int>> CountJobsGroupByStatus();
+
+        Task<IList<FileJob>> GetFileJobs(int skip, int limit);
+
+        Task<int> CountFileJobs();
+
         Task CreateFileJob(FileJob entity);
 
         Task UpdateFileJob(string id, string jobId, FileJobStatus status);
@@ -46,10 +52,24 @@ namespace CloudSpeed.Repositories
 
         Task<IList<FileDeal>> GetFileDeals(FileDealStatus status, int skip, int limit);
 
+        Task<IDictionary<FileDealStatus, int>> CountDealsGroupByStatus();
+
+        Task<IList<FileDeal>> GetFileDeals(int skip, int limit);
+
+        Task<int> CountFileDeals();
+
         Task CreateFileDeal(FileDeal entity);
 
         Task UpdateFileDeal(string id, string miner, string dealId, FileDealStatus status);
 
         Task UpdateFileDeal(string id, FileDealStatus status, string error);
+
+        Task CreateFileImport(FileImport entity);
+
+        Task UpdateFileImport(string id, FileImportStatus status, string error, int total, int success, int failed);
+
+        Task<IList<FileImport>> GetFileImports(int skip, int limit);
+
+        Task<int> CountFileImports();
     }
 }

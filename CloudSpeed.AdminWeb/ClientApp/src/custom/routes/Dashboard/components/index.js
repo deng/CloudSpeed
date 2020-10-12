@@ -7,7 +7,7 @@ import { router } from 'dva';
 import { ModalForm } from 'components/Modal';
 const { Link } = router;
 import BaseComponent from 'components/BaseComponent';
-import createMinerColumns from './../../Lotus/Miner/components/columns';
+import createMinerColumns from './columns';
 import './index.less';
 const { Content } = Layout;
 
@@ -22,7 +22,7 @@ export default class Dashboard extends BaseComponent {
   };
   render() {
     const { dashboard, loading } = this.props;
-    const { pageData } = dashboard;
+    const { jobsData, dealsData } = dashboard;
     const minerColumns = createMinerColumns(this);
     const { record, visible } = this.state;
 

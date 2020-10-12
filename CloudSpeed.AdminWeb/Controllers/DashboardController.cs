@@ -10,26 +10,15 @@ namespace CloudSpeed.AdminWeb.Controllers
     [Route("api/[controller]")]
     public class DashboardController : ApiControllerBase
     {
-        private readonly FilesManager _FilesManager;
-
         private readonly JobsManager _JobsManager;
 
         private readonly DealsManager _DealsManager;
 
-        public DashboardController(FilesManager filesManager, JobsManager jobsManager, DealsManager dealsManager)
+        public DashboardController(JobsManager jobsManager, DealsManager dealsManager)
         {
-            _FilesManager = filesManager;
             _JobsManager = jobsManager;
             _DealsManager = dealsManager;
         }
-
-        [HttpPost("Files")]
-        public async Task<IActionResult> Files([FromBody] DashboardFilesRequest request)
-        {
-            var data = await _FilesManager.GetDashboardInfo(request);
-            return Result(data);
-        }
-
 
         [HttpPost("Jobs")]
         public async Task<IActionResult> Jobs([FromBody] DashboardJobsRequest request)

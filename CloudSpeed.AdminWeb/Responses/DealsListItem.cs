@@ -5,15 +5,17 @@ using CloudSpeed.Entities;
 
 namespace CloudSpeed.AdminWeb.Responses
 {
-    public class JobsListItem
+    public class DealsListItem
     {
         public string Id { get; set; }
         
         public string Cid { get; set; }
 
-        public string JobId { get; set; }
+        public string DealId { get; set; }
+        
+        public string Miner { get; set; }
 
-        public FileJobStatus Status { get; set; }
+        public FileDealStatus Status { get; set; }
 
         public string Error { get; set; }
 

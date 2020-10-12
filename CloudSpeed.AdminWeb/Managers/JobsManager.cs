@@ -8,11 +8,13 @@ using CloudSpeed.Services;
 using CloudSpeed.Settings;
 using CloudSpeed.Repositories;
 using System.Threading.Tasks;
-using CloudSpeed.Web.Responses;
 using CloudSpeed.Web.Models;
 using CloudSpeed.Web.Requests;
+using CloudSpeed.Web.Responses;
 using CloudSpeed.Sdk;
 using CloudSpeed.AdminWeb.Requests;
+using CloudSpeed.AdminWeb.Responses;
+using System.Linq;
 
 namespace CloudSpeed.AdminWeb.Managers
 {
@@ -23,23 +25,23 @@ namespace CloudSpeed.AdminWeb.Managers
 
         }
 
-        public ApiResponse<IDictionary<FileJobStatus, int>> GetDashboardInfo(DashboardJobsRequest request)
+        public async Task<ApiResponse<IDictionary<FileJobStatus, int>>> GetDashboardInfo(DashboardJobsRequest request)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
-                var repository = scope.Resolve<IFilPanRepository>();
-                var counts = repository.CountJobsGroupByStatus();
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var counts = await repository.CountJobsGroupByStatus();
                 return ApiResponse.Ok(counts);
             }
         }
 
-        public ApiResponse<PagedResult<JobsListItem>> GetJobs(JobsGetListRequest request)
+        public async Task<ApiResponse<PagedResult<JobsListItem>>> GetJobs(JobsGetListRequest request)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
-                var repository = scope.Resolve<IFilPanRepository>();
-                var total = repository.CountJobs();
-                var entities = repository.GetJobs(request.Skip, request.Limit);
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var total = await repository.CountFileJobs();
+                var entities = await repository.GetFileJobs(request.Skip, request.Limit);
                 var result = entities.Select(entity => new JobsListItem
                 {
                     Id = entity.Id,

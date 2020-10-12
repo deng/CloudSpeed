@@ -102,6 +102,21 @@ namespace CloudSpeed.Repositories
             return await DbContext.FileJobs.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
+        public async Task<IDictionary<FileJobStatus, int>> CountJobsGroupByStatus()
+        {
+            return await DbContext.FileJobs.AsNoTracking().GroupBy(a => a.Status).ToDictionaryAsync(a => a.Key, a => a.Count());
+        }
+
+        public async Task<IList<FileJob>> GetFileJobs(int skip, int limit)
+        {
+            return await DbContext.FileJobs.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
+        }
+
+        public async Task<int> CountFileJobs()
+        {
+            return await DbContext.FileJobs.CountAsync();
+        }
+
         public async Task CreateFileJob(FileJob entity)
         {
             await DbContext.FileJobs.AddAsync(entity);
@@ -134,6 +149,21 @@ namespace CloudSpeed.Repositories
             return await DbContext.FileDeals.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
+        public async Task<IDictionary<FileDealStatus, int>> CountDealsGroupByStatus()
+        {
+            return await DbContext.FileDeals.AsNoTracking().GroupBy(a => a.Status).ToDictionaryAsync(a => a.Key, a => a.Count());
+        }
+
+        public async Task<IList<FileDeal>> GetFileDeals(int skip, int limit)
+        {
+            return await DbContext.FileDeals.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
+        }
+
+        public async Task<int> CountFileDeals()
+        {
+            return await DbContext.FileDeals.CountAsync();
+        }
+
         public async Task CreateFileDeal(FileDeal entity)
         {
             await DbContext.FileDeals.AddAsync(entity);
@@ -160,6 +190,35 @@ namespace CloudSpeed.Repositories
                 entity.Error = error;
                 entity.Updated = DateTime.Now;
             }
+        }
+
+        public async Task CreateFileImport(FileImport entity)
+        {
+            await DbContext.FileImports.AddAsync(entity);
+        }
+
+        public async Task UpdateFileImport(string id, FileImportStatus status, string error, int total, int success, int failed)
+        {
+            var entity = await DbContext.FileImports.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.Status = status;
+                entity.Error = error;
+                entity.Total = total;
+                entity.Success = success;
+                entity.Failed = failed;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
+        public async Task<IList<FileImport>> GetFileImports(int skip, int limit)
+        {
+            return await DbContext.FileImports.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
+        }
+
+        public async Task<int> CountFileImports()
+        {
+            return await DbContext.FileImports.CountAsync();
         }
 
         public Task Commit()

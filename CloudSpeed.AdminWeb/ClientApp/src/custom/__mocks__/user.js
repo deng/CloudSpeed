@@ -7,24 +7,13 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         path: '/dashboard',
       },
       {
-        name: 'Files',
-        icon: 'RadarChartOutlined',
-        path: '/files',
-        children: [
-          {
-            name: 'Logs',
-            path: '/files/logs',
-          },
-        ],
-      },
-      {
         name: 'Jobs',
         icon: 'RadarChartOutlined',
         path: '/jobs',
         children: [
           {
             name: 'Powergate Jobs',
-            path: '/jobs/',
+            path: '/jobs',
           },
         ],
       },
@@ -40,17 +29,13 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         ],
       },
       {
-        name: 'Storages',
+        name: 'Imports',
         icon: 'RadarChartOutlined',
-        path: '/storages',
+        path: '/imports',
         children: [
           {
             name: 'Logs',
-            path: '/storages/logs',
-          },
-          {
-            name: 'Import',
-            path: '/storages/import',
+            path: '/imports',
           },
         ],
       },
