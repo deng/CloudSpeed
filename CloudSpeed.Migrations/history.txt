@@ -5,3 +5,4 @@ dotnet ef migrations add AddFileJobs
 dotnet ef migrations add AlterFileJobs
 dotnet ef migrations add AlterFileJobs2
 dotnet ef migrations add AddFileDeal
+dotnet ef migrations add AddFileImport

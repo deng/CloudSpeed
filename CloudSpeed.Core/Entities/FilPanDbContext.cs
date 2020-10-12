@@ -26,5 +26,7 @@ namespace CloudSpeed.Entities
         public DbSet<FileJob> FileJobs { get; set; }
 
         public DbSet<FileDeal> FileDeals { get; set; }
+        
+        public DbSet<FileImport> FileImports { get; set; }
     }
 }
