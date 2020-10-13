@@ -85,7 +85,7 @@ class NavBar extends PureComponent {
       <header className={classnames}>
         <div className="navbar-branding">
           <Link className="navbar-brand" to="/">
-            云储矿池
+            Cloud Speed
           </Link>
           <span className="toggle_sidemenu_l" onClick={onCollapseLeftSide}>
             <Icon type="lines" />

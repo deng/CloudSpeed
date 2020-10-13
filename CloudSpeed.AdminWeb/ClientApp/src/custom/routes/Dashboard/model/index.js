@@ -23,27 +23,15 @@ export default modelEnhance({
   effects: {
     *init({ }, { put }) {
       yield put({
-        type: 'getJobsInfo',
-      });
-      yield put({
-        type: 'getDealsInfo',
+        type: 'getInfo',
       });
     },
-    *getJobsInfo({ }, { put }) {
+    *getInfo({ }, { put }) {
       yield put({
         type: '@request',
         payload: {
-          valueField: 'jobsData',
-          url: '/dashboard/jobs',
-        }
-      });
-    },
-    *getDealsInfo({ }, { put }) {
-      yield put({
-        type: '@request',
-        payload: {
-          valueField: 'dealsData',
-          url: '/dashboard/deals',
+          valueField: 'info',
+          url: '/dashboard/info',
         }
       });
     },

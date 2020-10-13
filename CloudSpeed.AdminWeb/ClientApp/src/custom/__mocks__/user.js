@@ -13,7 +13,7 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         children: [
           {
             name: 'Powergate Jobs',
-            path: '/jobs',
+            path: '/jobs/list',
           },
         ],
       },
@@ -24,7 +24,7 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         children: [
           {
             name: 'Lotus Deals',
-            path: '/deals',
+            path: '/deals/list',
           },
         ],
       },
@@ -35,7 +35,7 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         children: [
           {
             name: 'Logs',
-            path: '/imports',
+            path: '/imports/list',
           },
         ],
       },

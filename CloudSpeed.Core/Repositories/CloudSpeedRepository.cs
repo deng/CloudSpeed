@@ -102,9 +102,10 @@ namespace CloudSpeed.Repositories
             return await DbContext.FileJobs.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
-        public async Task<IDictionary<FileJobStatus, int>> CountJobsGroupByStatus()
+        public IDictionary<string, int> CountJobsGroupByStatus()
         {
-            return await DbContext.FileJobs.AsNoTracking().GroupBy(a => a.Status).ToDictionaryAsync(a => a.Key, a => a.Count());
+            //TODO:  sqlite not support group by
+            return DbContext.FileJobs.AsEnumerable().GroupBy(a => a.Status).ToDictionary(a => a.Key.ToString(), a => a.Count());
         }
 
         public async Task<IList<FileJob>> GetFileJobs(int skip, int limit)
@@ -149,9 +150,10 @@ namespace CloudSpeed.Repositories
             return await DbContext.FileDeals.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();
         }
 
-        public async Task<IDictionary<FileDealStatus, int>> CountDealsGroupByStatus()
+        public IDictionary<string, int> CountDealsGroupByStatus()
         {
-            return await DbContext.FileDeals.AsNoTracking().GroupBy(a => a.Status).ToDictionaryAsync(a => a.Key, a => a.Count());
+            //TODO:  sqlite not support group by
+            return DbContext.FileDeals.AsEnumerable().GroupBy(a => a.Status).ToDictionary(a => a.Key.ToString(), a => a.Count());
         }
 
         public async Task<IList<FileDeal>> GetFileDeals(int skip, int limit)

@@ -231,7 +231,7 @@ class DataTable extends Component {
     // 显示行号
     if (showNum) {
       cols.unshift({
-        title: '序号',
+        title: 'Num.',
         width: 50,
         dataIndex: '_num',
         ...(hasLeftFixedCol && { fixed: 'left' }),

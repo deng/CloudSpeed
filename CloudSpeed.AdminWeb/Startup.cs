@@ -14,6 +14,7 @@ using System;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Mime;
+using CloudSpeed.AdminWeb.Managers;
 
 namespace CloudSpeed.AdminWeb
 {
@@ -71,6 +72,10 @@ namespace CloudSpeed.AdminWeb
             });
 
             services.AddAppServices(Configuration);
+            services.AddSingleton<DealsManager>();
+            services.AddSingleton<ImportsManager>();
+            services.AddSingleton<JobsManager>();
+
             ServiceProvider = services.BuildGlobalServices();
         }
 

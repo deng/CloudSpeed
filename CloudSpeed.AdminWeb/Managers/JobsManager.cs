@@ -25,13 +25,13 @@ namespace CloudSpeed.AdminWeb.Managers
 
         }
 
-        public async Task<ApiResponse<IDictionary<FileJobStatus, int>>> GetDashboardInfo(DashboardJobsRequest request)
+        public IDictionary<string, int> GetDashboardInfo()
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
-                var counts = await repository.CountJobsGroupByStatus();
-                return ApiResponse.Ok(counts);
+                var counts = repository.CountJobsGroupByStatus();
+                return counts;
             }
         }
 

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using CloudSpeed.Managers;
 using CloudSpeed.AdminWeb.Requests;
+using CloudSpeed.AdminWeb.Responses;
 using CloudSpeed.AdminWeb.Managers;
 
 namespace CloudSpeed.AdminWeb.Controllers
@@ -20,18 +21,27 @@ namespace CloudSpeed.AdminWeb.Controllers
             _DealsManager = dealsManager;
         }
 
-        [HttpPost("Jobs")]
-        public async Task<IActionResult> Jobs([FromBody] DashboardJobsRequest request)
+        [HttpPost("Info")]
+        public IActionResult Info()
         {
-            var data = await _JobsManager.GetDashboardInfo(request);
-            return Result(data);
+            var info = new DashboardInfo();
+            info.Jobs = _JobsManager.GetDashboardInfo();
+            info.Deals = _DealsManager.GetDashboardInfo();
+            return Ok(info);
+        }
+
+        [HttpPost("Jobs")]
+        public IActionResult Jobs()
+        {
+            var data = _JobsManager.GetDashboardInfo();
+            return Ok(data);
         }
 
         [HttpPost("Deals")]
-        public async Task<IActionResult> Deals([FromBody] DashboardDealsRequest request)
+        public IActionResult Deals()
         {
-            var data = await _DealsManager.GetDashboardInfo(request);
-            return Result(data);
+            var data = _DealsManager.GetDashboardInfo();
+            return Ok(data);
         }
     }
 }

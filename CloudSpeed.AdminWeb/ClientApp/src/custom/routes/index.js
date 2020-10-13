@@ -4,12 +4,10 @@ import UserLayout from '@/custom/layouts/UserLayout';
 import Page403 from './Pages/403';
 import NotFound from './Pages/404';
 import Page500 from './Pages/500';
-import Login from './Login';
 import Dashboard from './Dashboard';
-import LotusMiner from './Lotus/Miner';
-import LotusJob from './Lotus/Job';
-import LotusWorker from './Lotus/Worker';
-import MinerStorageSector from './Miner/Storage/Sector';
+import Jobs from './Jobs';
+import Deals from './Deals';
+import Imports from './Imports';
 
 /**
  * 主路由配置
@@ -22,26 +20,15 @@ import MinerStorageSector from './Miner/Storage/Sector';
  */
 const routesConfig = app => [
   {
-    path: '/sign',
-    title: '登录',
-    indexRoute: '/sign/login',
-    component: UserLayout,
-    childRoutes: [
-      Login(app),
-      NotFound()
-    ]
-  },
-  {
     path: '/',
     title: '系统中心',
     component: BasicLayout,
     indexRoute: '/dashboard',
     childRoutes: [
       Dashboard(app),
-      LotusMiner(app),
-      LotusJob(app),
-      LotusWorker(app),
-      MinerStorageSector(app),
+      Jobs(app),
+      Deals(app),
+      Imports(app),
       Page403(),
       Page500(),
       NotFound()

@@ -1,15 +1,14 @@
 import React from 'react';
 import { connect } from 'dva';
 import { Layout } from 'antd';
-import { UnorderedListOutlined, DiffOutlined } from '@ant-design/icons';
-import { Card, Col, Row, Descriptions } from 'antd';
-import { router } from 'dva';
-import { ModalForm } from 'components/Modal';
-const { Link } = router;
+import { Col, Row } from 'antd';
+import Panel from 'components/Panel';
+import G2 from 'components/Charts/G2';
+import DataSet from '@antv/data-set';
 import BaseComponent from 'components/BaseComponent';
-import createMinerColumns from './columns';
 import './index.less';
 const { Content } = Layout;
+const { Chart, Axis, Geom, Tooltip, Legend, Coord, Label } = G2;
 
 @connect(({ dashboard, loading }) => ({
   dashboard,
@@ -22,63 +21,83 @@ export default class Dashboard extends BaseComponent {
   };
   render() {
     const { dashboard, loading } = this.props;
-    const { jobsData, dealsData } = dashboard;
-    const minerColumns = createMinerColumns(this);
-    const { record, visible } = this.state;
-
-    const modalFormProps = {
-      loading,
-      record,
-      visible,
-      title:'查看',
-      columns: minerColumns,
-      formOpts:{
-        formItemLayout: {
-          labelCol: { span: 7 },
-          wrapperCol: { span: 16 }
-        },
-      },
-      modalOpts: {
-          width: 800
-      },
-      onCancel: () => {
-        this.setState({
-          record: null,
-          visible: false
-        });
-      },
-    };
-
+    const { info } = dashboard;
     return (
       <Layout className="full-layout page dashboard-page">
         <Content>
-          <Row gutter={16}>
-            {
-              pageData.list && pageData.list.map((d, i) => (
-                <Col sm={24} md={12} lg={8} style={{ marginTop: '10px' }}>
-                  <Card title={`${(i + 1)}. ${d.id}`} bordered={false} actions={[
-                    <DiffOutlined onClick={e => this.onUpdate(d)}/>,
-                    <Link to={"/miner/storage/sector?minerId=" + d.id}>
-                      <UnorderedListOutlined />
-                    </Link>
-                  ]}>
-                    <Descriptions column={1} bordered size={'small'}>
-                      <Descriptions.Item label={'Sector Size'}>{d['sectorSize']}</Descriptions.Item>
-                      <Descriptions.Item label={'Committed'}>{d['committed']}</Descriptions.Item>
-                      <Descriptions.Item label={'Proving'}>{d['proving']}</Descriptions.Item>
-                      <Descriptions.Item label={'Byte Power'}>{d['bytePower']}</Descriptions.Item>
-                      <Descriptions.Item label={'Actual Power'}>{d['actualPower']}</Descriptions.Item>
-                      <Descriptions.Item label={'Proving Period Start'}>{d['provingPeriodStart']}</Descriptions.Item>
-                      <Descriptions.Item label={'Next Period Start'}>{d['nextPeriodStart']}</Descriptions.Item>
-                    </Descriptions>
-                  </Card>
-                </Col>
-              ))
-            }
+          <Row gutter={20}>
+            <Col md={12}>
+              <Panel title="Deals" height={260}>
+                {!loading && info.data && info.data.deals && (<Pie data={info.data.deals} />)}
+              </Panel>
+            </Col>
+            <Col md={12}>
+              <Panel title="Jobs" height={260}>
+                {!loading && info.data && info.data.jobs && (<Pie data={info.data.jobs} />)}
+              </Panel>
+            </Col>
           </Row>
         </Content>
-        <ModalForm {...modalFormProps} />
       </Layout>
     );
   }
 }
+
+const Pie = props => {
+  const { data } = props;
+  if (!data) return (<React.Fragment></React.Fragment>);
+  console.warn(Object.keys(data).map(a => { return { item: a, count: data[a] }; }))
+  const dv = new DataSet.DataView();
+  dv.source(Object.keys(data).map(a => { return { item: a, count: data[a] }; })).transform({
+    type: 'percent',
+    field: 'count',
+    dimension: 'item',
+    as: 'percent'
+  });
+  const cols = {
+    percent: {
+      formatter: val => {
+        val = val * 100 + '%';
+        return val;
+      }
+    }
+  };
+  return (
+    <Chart data={dv} scale={cols} padding={10}>
+      <Coord type={'theta'} radius={0.75} innerRadius={0.6} />
+      <Axis name="percent" />
+      <Legend
+        position="right"
+        offsetY={-window.innerHeight / 2 + 120}
+        offsetX={-100}
+      />
+      <Tooltip
+        showTitle={false}
+        itemTpl="<li><span style=&quot;background-color:{color};&quot; class=&quot;g2-tooltip-marker&quot;></span>{name}: {value}</li>"
+      />
+      <Geom
+        type="intervalStack"
+        position="percent"
+        color="item"
+        tooltip={[
+          'item*percent',
+          (item, percent) => {
+            percent = percent * 100 + '%';
+            return {
+              name: item,
+              value: percent
+            };
+          }
+        ]}
+        style={{ lineWidth: 1, stroke: '#fff' }}
+      >
+        <Label
+          content="percent"
+          formatter={(val, item) => {
+            return item.point.item + ': ' + val;
+          }}
+        />
+      </Geom>
+    </Chart>
+  );
+};

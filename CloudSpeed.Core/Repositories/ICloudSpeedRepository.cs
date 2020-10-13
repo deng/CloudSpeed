@@ -38,7 +38,7 @@ namespace CloudSpeed.Repositories
 
         Task<IList<FileJob>> GetFileJobs(FileJobStatus status, int skip, int limit);
 
-        Task<IDictionary<FileJobStatus, int>> CountJobsGroupByStatus();
+        IDictionary<string, int> CountJobsGroupByStatus();
 
         Task<IList<FileJob>> GetFileJobs(int skip, int limit);
 
@@ -52,7 +52,7 @@ namespace CloudSpeed.Repositories
 
         Task<IList<FileDeal>> GetFileDeals(FileDealStatus status, int skip, int limit);
 
-        Task<IDictionary<FileDealStatus, int>> CountDealsGroupByStatus();
+        IDictionary<string, int> CountDealsGroupByStatus();
 
         Task<IList<FileDeal>> GetFileDeals(int skip, int limit);
 
