@@ -50,8 +50,6 @@ const Pan = () => {
 
   return (
     <div>
-      <h1>Privacy, speed</h1>
-      <p>Upload and download files to support Alipay and WeChat</p>
       <p>File name</p>
       <p>{pan.fileName}</p>
       <p>File size</p>
@@ -62,9 +60,6 @@ const Pan = () => {
       <p>{pan.dataCid ? pan.dataCid : "Not yet"}</p>
       <p>Introduction</p>
       <div dangerouslySetInnerHTML={{ __html: pan.description }} />
-      <p>Reward</p>
-      <p>{pan.alipayKey && <img src={`${window.location.origin}/api/reward/alipay/${pan.alipayKey}`} width={250} />}</p>
-      <p>{pan.wxpayKey && <img src={`${window.location.origin}/api/reward/wxpay/${pan.wxpayKey}`} width={250} />}</p>
       {pan.secret && <p> <a onClick={() => setValidating(true)}>Download file</a></p>}
       {!pan.secret  && <p> <a target="_blank" href={`${panDownloadUrl(id)}`}>Download file</a></p>}
       <p><a href='/'>I want to upload it, too</a></p>

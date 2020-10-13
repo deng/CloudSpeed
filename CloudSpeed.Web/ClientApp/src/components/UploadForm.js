@@ -199,45 +199,6 @@ const UploadForm = () => {
                 <Form.Item label="Extraction code (limited to 10 digits or letters)" name="password">
                     <Input placeholder="Enter the extraction code, leave blank as unencrypted" />
                 </Form.Item>
-                <Form.Item label="Collection code">
-                    <Row gutter={8}>
-                        <Col span={12}>
-                            <Form.Item name="alipayKey" noStyle>
-                                <Upload
-                                    name="alipayKey"
-                                    listType="picture-card"
-                                    className="avatar-uploader"
-                                    action='/api/upload/SmallFileUpload'
-                                    showUploadList={false}
-                                    beforeUpload={beforeUploadSmallFile}
-                                    onChange={info => handleSmallFileChange(info, setAlipayFile)}
-                                >
-                                    {alipayFile.imageUrl ?
-                                        <img src={alipayFile.imageUrl} alt={'Alipay payment code'} style={{ width: '100%' }} /> :
-                                        renderUploadButton(alipayFile.loading, require('./../assets/images/alipay.png'), 'Alipay payment code')}
-                                </Upload>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="wxpayKey" noStyle>
-                                <Upload
-                                    name="wxpayKey"
-                                    listType="picture-card"
-                                    className="avatar-uploader"
-                                    action='/api/upload/SmallFileUpload'
-                                    showUploadList={false}
-                                    beforeUpload={beforeUploadSmallFile}
-                                    onChange={info => handleSmallFileChange(info, setWxpayFile)}
-                                    fileList={wxpayFile.fileList}
-                                >
-                                    {wxpayFile.imageUrl ?
-                                        <img src={wxpayFile.imageUrl} alt={'Wechat payment code'} style={{ width: '100%' }} /> :
-                                        renderUploadButton(wxpayFile.loading, require('./../assets/images/wxpay.png'), 'Wechat payment code')}
-                                </Upload>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Form.Item>
                 <Form.Item>
                     <Button loading={formLoading} type="primary" icon={<UploadOutlined />} htmlType="submit">Publish</Button>
                 </Form.Item>
