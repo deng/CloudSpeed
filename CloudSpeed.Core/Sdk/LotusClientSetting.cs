@@ -2,6 +2,7 @@ using System;
 using Newtonsoft.Json;
 using RestSharp;
 using System.Linq;
+using CloudSpeed.Services;
 
 namespace CloudSpeed.Sdk
 {
@@ -24,7 +25,7 @@ namespace CloudSpeed.Sdk
             var sectorSize = string.Empty;
             var orderedMiners = Miners.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
             if (orderedMiners.Length > 0)
-                return orderedMiners.FirstOrDefault();
+                return orderedMiners[RandomService.Next(orderedMiners.Length - 1)];
             else
                 return Miners.OrderByDescending(m => m.SectorSizeInBytes).First();
         }
