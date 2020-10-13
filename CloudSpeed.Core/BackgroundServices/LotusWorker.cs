@@ -1,18 +1,18 @@
-using CloudSpeed.Sdk;
-using CloudSpeed.Entities;
-using CloudSpeed.Managers;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Concurrent;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
-using System.IO;
+using CloudSpeed.Entities;
+using CloudSpeed.Managers;
 using CloudSpeed.Powergate;
-using Google.Protobuf;
+using CloudSpeed.Sdk;
 using CloudSpeed.Services;
-using System.Collections.Concurrent;
+using Google.Protobuf;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace CloudSpeed.BackgroundServices
 {
@@ -50,12 +50,123 @@ namespace CloudSpeed.BackgroundServices
             _lotusClientSetting = lotusClientSetting;
         }
 
+        private async Task CreateSentryBox1(CancellationToken stoppingToken)
+        {
+            try
+            {
+                _logger.LogInformation("create sentry box 1");
+                var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    //check for none deals
+                    {
+                        _logger.LogDebug("check for none deals");
+                        int limit = 10;
+                        int skip = 0;
+                        while (true)
+                        {
+                            var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.None, skip, limit);
+                            if (fileDeals.Count() == 0)
+                            {
+                                _logger.LogDebug("file deal empty with status none");
+                                break;
+                            }
+                            _logger.LogInformation("found file {count} deals", fileDeals.Count());
+                            foreach (var fileDeal in fileDeals)
+                            {
+                                await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, stoppingToken);
+                            }
+                            skip += limit;
+                        }
+                    }
+                    await Task.Delay(10000, stoppingToken);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(0, ex, "SentryBox error:" + ex.ToString());
+            }
+        }
+
+        private async Task CreateSentryBox2(CancellationToken stoppingToken)
+        {
+            try
+            {
+                _logger.LogInformation("create sentry box 2");
+                var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    //check for processing deals
+                    {
+                        _logger.LogDebug("check for processing deals");
+                        int limit = 10;
+                        int skip = 0;
+                        while (true)
+                        {
+                            var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.Processing, skip, limit);
+                            if (fileDeals.Count() == 0)
+                            {
+                                _logger.LogDebug("file deal empty with status procesing");
+                                break;
+                            }
+                            foreach (var fileDeal in fileDeals)
+                            {
+                                if (fileDeal.Updated.AddMinutes(1) > DateTime.Now)
+                                    continue; //Too NEW
+
+                                try
+                                {
+                                    var dealInfo = await lotusClient.ClientGetDealInfo(new Cid { Value = fileDeal.DealId });
+                                    if (!dealInfo.Success || dealInfo.Result == null)
+                                    {
+                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Error));
+                                        continue;
+                                    }
+                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
+                                      dealInfo.Result.State == StorageDealStatus.StorageDealProposalNotFound ||
+                                      dealInfo.Result.State == StorageDealStatus.StorageDealProposalRejected)
+                                    {
+                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2} {3}", fileDeal.Miner, fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
+                                        await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Failed, dealInfo.Result.Message ?? dealInfo.Result.State.ToString());
+                                        _processingDealIds.TryRemove(fileDeal.DealId, out _);
+                                        continue;
+                                    }
+                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealActive)
+                                    {
+                                        _logger.LogInformation(string.Format("lotus client deal active: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
+                                        await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Success);
+                                        _processingDealIds.TryRemove(fileDeal.DealId, out _);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogDebug(string.Format("lotus client deal status: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
+                                    }
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    _logger.LogError(0, ex, "lotus client get deal info fail:" + ex.ToString());
+                                }
+                            }
+                            skip += limit;
+                        }
+                    }
+                    await Task.Delay(10000, stoppingToken);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(0, ex, "SentryBox error:" + ex.ToString());
+            }
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("LotusWorker running at: {time}", DateTimeOffset.Now);
-            var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
+            var _1 = CreateSentryBox1(stoppingToken);
+            var _2 = CreateSentryBox2(stoppingToken);
             try
             {
+                var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     {
@@ -66,7 +177,7 @@ namespace CloudSpeed.BackgroundServices
                             var fileCids = await _cloudSpeedManager.GetFileCids(FileCidStatus.None, skip, limit);
                             if (fileCids.Count() == 0)
                             {
-                                _logger.LogInformation(0, "file cid empty with status none");
+                                _logger.LogDebug(0, "file cid empty with status none");
                                 break;
                             }
                             foreach (var fileCid in fileCids)
@@ -96,93 +207,13 @@ namespace CloudSpeed.BackgroundServices
                                     if (!string.IsNullOrEmpty(cid))
                                     {
                                         var fdId = await _cloudSpeedManager.CreateFileDeal(cid);
-                                        await ClientStartDeal(lotusClient, fdId, cid, stoppingToken);
                                     }
                                 }
                             }
                             skip += limit;
                         }
                     }
-                    await Task.Delay(1000, stoppingToken);
-                    //check for none deals
-                    {
-                        _logger.LogInformation("check for none deals");
-                        int limit = 10;
-                        int skip = 0;
-                        while (true)
-                        {
-                            var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.None, skip, limit);
-                            if (fileDeals.Count() == 0)
-                            {
-                                _logger.LogInformation("file deal empty with status none");
-                                break;
-                            }
-                            _logger.LogInformation("found file {count} deals", fileDeals.Count());
-                            foreach (var fileDeal in fileDeals)
-                            {
-                                await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, stoppingToken);
-                            }
-                            skip += limit;
-                        }
-                    }
-                    await Task.Delay(1000, stoppingToken);
-                    //check for processing deals
-                    {
-                        int limit = 10;
-                        int skip = 0;
-                        while (true)
-                        {
-                            var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.Processing, skip, limit);
-                            if (fileDeals.Count() == 0)
-                            {
-                                _logger.LogInformation("file deal empty with status procesing");
-                                break;
-                            }
-                            foreach (var fileDeal in fileDeals)
-                            {
-                                if (fileDeal.Updated.AddMinutes(1) > DateTime.Now)
-                                    continue;//Too NEW
-
-                                try
-                                {
-                                    var dealInfo = await lotusClient.ClientGetDealInfo(new Cid { Value = fileDeal.DealId });
-                                    if (!dealInfo.Success || dealInfo.Result == null)
-                                    {
-                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Error));
-                                        continue;
-                                    }
-
-                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
-                                        dealInfo.Result.State == StorageDealStatus.StorageDealProposalNotFound ||
-                                        dealInfo.Result.State == StorageDealStatus.StorageDealProposalRejected)
-                                    {
-                                        _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
-                                        await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Failed, dealInfo.Result.Message ?? dealInfo.Result.State.ToString());
-                                        _processingDealIds.TryRemove(fileDeal.DealId, out _);
-                                        continue;
-                                    }
-
-                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealActive)
-                                    {
-                                        _logger.LogInformation(string.Format("lotus client deal active: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
-                                        await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Success);
-                                        _processingDealIds.TryRemove(fileDeal.DealId, out _);
-                                    }
-
-                                    else
-                                    {
-                                        _logger.LogInformation(string.Format("lotus client deal status: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
-                                    }
-                                }
-                                catch (System.Exception ex)
-                                {
-                                    _logger.LogError(0, ex, "lotus client get deal info fail:" + ex.ToString());
-                                }
-                            }
-                            skip += limit;
-                        }
-                    }
-                    await Task.Delay(1000, stoppingToken);
+                    await Task.Delay(5000, stoppingToken);
                 }
             }
             catch (System.Exception ex)
@@ -293,7 +324,7 @@ namespace CloudSpeed.BackgroundServices
                 {
                     DataCid = cid,
                     Miner = miner.Miner,
-                    Price = askingPrice.ToString(),//Price per GiB
+                    Price = askingPrice.ToString(), //Price per GiB
                     Duration = minDealDuration
                 };
                 var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, dealRequest);
@@ -302,7 +333,7 @@ namespace CloudSpeed.BackgroundServices
                     _logger.LogError(0, string.Format("CreateTTGraphsyncClientStartDealParams empty."));
                     return;
                 }
-                _logger.LogInformation("lotus client start dealing: {dataCid} (datacid) {miner} {price} {duration}", cid, miner, dealRequest.Price, dealRequest.Duration);
+                _logger.LogInformation("lotus client start dealing: {dataCid} (datacid) {miner} {price} {duration}", cid, dealRequest.Miner, dealRequest.Price, dealRequest.Duration);
                 var dealCid = await lotusClient.ClientStartDeal(dealParams);
                 if (dealCid.Success)
                 {
