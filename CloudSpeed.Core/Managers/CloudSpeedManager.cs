@@ -170,7 +170,6 @@ namespace CloudSpeed.Managers
             }
         }
 
-
         public async Task UpdateFileCid(string id, string cid, FileCidStatus status)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())

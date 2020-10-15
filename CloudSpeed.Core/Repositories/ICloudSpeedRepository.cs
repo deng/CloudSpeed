@@ -25,6 +25,8 @@ namespace CloudSpeed.Repositories
         Task<IList<FileCid>> GetFileCids(FileCidStatus status, int skip, int limit);
 
         Task<FileCid> GetFileCidsByCid(string cid);
+        
+        Task<string> GetFileCidByDealId(string dealId);
 
         Task UpdateFileCid(string Id, string cid, FileCidStatus status);
 

@@ -55,6 +55,11 @@ namespace CloudSpeed.Repositories
             return DbContext.FileCids.AsNoTracking().FirstOrDefaultAsync(a => a.Cid == cid);
         }
 
+        public Task<string> GetFileCidByDealId(string dealId)
+        {
+            return DbContext.FileDeals.Where(a => a.DealId == dealId).Select(a => a.Cid).FirstOrDefaultAsync();
+        }
+
         public async Task<IList<FileCid>> GetFileCids(FileCidStatus status, int skip, int limit)
         {
             return await DbContext.FileCids.AsNoTracking().Where(a => a.Status == status).Skip(skip).Take(limit).ToListAsync();

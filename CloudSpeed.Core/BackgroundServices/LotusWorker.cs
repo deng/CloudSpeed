@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -40,8 +41,8 @@ namespace CloudSpeed.BackgroundServices
         };
 
         private readonly ConcurrentDictionary<string, DateTime> _processingDealIds = new ConcurrentDictionary<string, DateTime>();
-        private readonly ConcurrentDictionary<string, DateTime> _transferingDealIds = new ConcurrentDictionary<string, DateTime>();
-        private readonly int _maxCountDealTransfering = 3;
+        private readonly ConcurrentDictionary<string, long> _processingDealIdBytes = new ConcurrentDictionary<string, long>();
+        private readonly ConcurrentDictionary<string, long> _transferingDealIdBytes = new ConcurrentDictionary<string, long>();
 
         public LotusWorker(ILogger<LotusWorker> logger, CloudSpeedManager cloudSpeedManager, LotusClientSetting lotusClientSetting)
         {
@@ -122,13 +123,27 @@ namespace CloudSpeed.BackgroundServices
                                         _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Error));
                                         continue;
                                     }
-                                    else if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
+
+                                    if (_transferingOrBeforeTransferStatus.Contains(dealInfo.Result.State))
+                                    {
+                                        if (_processingDealIdBytes.TryGetValue(fileDeal.DealId, out long length))
+                                        {
+                                            _transferingDealIdBytes.TryAdd(fileDeal.DealId, length);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _transferingDealIdBytes.TryRemove(fileDeal.DealId, out _);
+                                    }
+
+                                    if (dealInfo.Result.State == StorageDealStatus.StorageDealError ||
                                       dealInfo.Result.State == StorageDealStatus.StorageDealProposalNotFound ||
                                       dealInfo.Result.State == StorageDealStatus.StorageDealProposalRejected)
                                     {
                                         _logger.LogError(0, string.Format("lotus client deal fail: {0} {1} {2} {3}", fileDeal.Miner, fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                         await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Failed, dealInfo.Result.Message ?? dealInfo.Result.State.ToString());
                                         _processingDealIds.TryRemove(fileDeal.DealId, out _);
+                                        _processingDealIdBytes.TryRemove(fileDeal.DealId, out _);
                                         continue;
                                     }
                                     else if (dealInfo.Result.State == StorageDealStatus.StorageDealActive)
@@ -136,6 +151,7 @@ namespace CloudSpeed.BackgroundServices
                                         _logger.LogInformation(string.Format("lotus client deal active: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                         await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, FileDealStatus.Success);
                                         _processingDealIds.TryRemove(fileDeal.DealId, out _);
+                                        _processingDealIdBytes.TryRemove(fileDeal.DealId, out _);
                                     }
                                     else
                                     {
@@ -227,38 +243,29 @@ namespace CloudSpeed.BackgroundServices
             try
             {
                 //limit transfering 
-                while (_processingDealIds.Count(a => a.Value >= DateTime.Now.AddHours(-1)) > 0)
+                while (_transferingDealIdBytes.Count > 0)
                 {
                     if (stoppingToken.IsCancellationRequested)
                         break;
 
-                    foreach (var processingDealId in _processingDealIds.Keys)
-                    {
-                        if (stoppingToken.IsCancellationRequested)
-                            break;
-                        var dealInfo = await lotusClient.ClientGetDealInfo(new Cid { Value = processingDealId });
-                        if (dealInfo.Result != null)
-                        {
-                            if (_transferingOrBeforeTransferStatus.Contains(dealInfo.Result.State))
-                            {
-                                if (!_transferingDealIds.ContainsKey(processingDealId))
-                                {
-                                    _transferingDealIds.TryAdd(processingDealId, DateTime.Now);
-                                }
-                            }
-                            else
-                            {
-                                _transferingDealIds.TryRemove(processingDealId, out _);
-                            }
-                        }
-                        await Task.Delay(1000, stoppingToken);
-                    }
-
-                    var countTransferingDealIds = _transferingDealIds.Count(a => a.Value >= DateTime.Now.AddHours(-1));
-                    if (countTransferingDealIds < _maxCountDealTransfering)
+                    var keys = _transferingDealIdBytes.Keys.ToArray();
+                    var maxSizeDealTransfering = LotusMinerSetting.GetMaxTransferingSizeInBytes(_lotusClientSetting.MaxTransferingSize);
+                    if (maxSizeDealTransfering == 0 && _transferingDealIdBytes.Count < _lotusClientSetting.MaxTransferingCount)
                         break;
 
-                    _logger.LogWarning(0, string.Format("limit transfering {0}.", countTransferingDealIds));
+                    var sizeTransferingDealIds = _transferingDealIdBytes.Sum(a => a.Value);
+                    if (sizeTransferingDealIds < maxSizeDealTransfering && _transferingDealIdBytes.Count < _lotusClientSetting.MaxTransferingCount)
+                        break;
+
+                    if (sizeTransferingDealIds >= maxSizeDealTransfering)
+                    {
+                        _logger.LogWarning(0, string.Format("limit transfering by sizes {0} >= {1}(max).", sizeTransferingDealIds, maxSizeDealTransfering));
+                    }
+                    if (_transferingDealIdBytes.Count > _lotusClientSetting.MaxTransferingCount)
+                    {
+                        _logger.LogWarning(0, string.Format("limit transfering by count {0} >= {1}(max).", _transferingDealIdBytes.Count, _lotusClientSetting.MaxTransferingCount));
+                    }
+                    
                     await Task.Delay(10000, stoppingToken);
                 }
 
@@ -341,6 +348,7 @@ namespace CloudSpeed.BackgroundServices
                     _logger.LogInformation("lotus client start deal result: {datacid}(datacid) - {dealcid} (dealcid) {price} {duration}", cid, did, dealRequest.Price, dealRequest.Duration);
                     await _cloudSpeedManager.UpdateFileDeal(fdId, miner.Miner, did, FileDealStatus.Processing);
                     _processingDealIds.AddOrUpdate(did, key => DateTime.Now, (key, oldDt) => DateTime.Now);
+                    _processingDealIdBytes.AddOrUpdate(did, key => fileSize, (key, oldDt) => fileSize);
                 }
                 else
                 {

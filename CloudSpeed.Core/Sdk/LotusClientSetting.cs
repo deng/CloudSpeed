@@ -16,6 +16,10 @@ namespace CloudSpeed.Sdk
 
         public LotusMinerSetting[] Miners { get; set; }
 
+        public string MaxTransferingSize { get; set; }
+
+        public int MaxTransferingCount { get; set; }
+
         public bool Enabled { get; set; }
 
         public LotusMinerSetting GetMinerByFileSize(long size)
@@ -29,6 +33,8 @@ namespace CloudSpeed.Sdk
             else
                 return Miners.OrderByDescending(m => m.SectorSizeInBytes).First();
         }
+
+
     }
 
     public class LotusMinerSetting
@@ -43,19 +49,24 @@ namespace CloudSpeed.Sdk
         {
             get
             {
-                switch (SectorSize)
-                {
-                    case "8MiB":
-                        return SectorSizeConstants.Bytes8MiB;
-                    case "512MiB":
-                        return SectorSizeConstants.Bytes512MiB;
-                    case "32GiB":
-                        return SectorSizeConstants.Bytes32GiB;
-                    case "64GiB":
-                        return SectorSizeConstants.Bytes64GiB;
-                    default:
-                        return 0;
-                }
+                return GetMaxTransferingSizeInBytes(SectorSize);
+            }
+        }
+
+        public static long GetMaxTransferingSizeInBytes(string sectorSize)
+        {
+            switch (sectorSize)
+            {
+                case "8MiB":
+                    return SectorSizeConstants.Bytes8MiB;
+                case "512MiB":
+                    return SectorSizeConstants.Bytes512MiB;
+                case "32GiB":
+                    return SectorSizeConstants.Bytes32GiB;
+                case "64GiB":
+                    return SectorSizeConstants.Bytes64GiB;
+                default:
+                    return 0;
             }
         }
     }
