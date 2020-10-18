@@ -3,12 +3,14 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using CloudSpeed.Managers;
 using CloudSpeed.Settings;
+using System;
 using System.IO;
 using System.Linq;
 using CloudSpeed.Web.Requests;
 using System.Globalization;
 using System.Threading;
 using CloudSpeed.Entities;
+using System.IO.Compression;
 
 namespace CloudSpeed.Uploader
 {
@@ -25,11 +27,23 @@ namespace CloudSpeed.Uploader
             _uploadSetting = uploadSetting;
         }
 
-        public async Task UploadAll(string path, CancellationToken stoppingToken)
+        public async Task UploadAll(string path, bool zip, CancellationToken stoppingToken)
         {
-            var di = new DirectoryInfo(path);
-            if (di.Exists)
+            if (Directory.Exists(path))
             {
+                var di = new DirectoryInfo(path);
+                if (zip)
+                {
+                    var tempZipPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), di.Name + ".zip");
+                    var tempZipInfo = new FileInfo(tempZipPath);
+                    tempZipInfo.Directory.Create();
+                    ZipFile.CreateFromDirectory(path, tempZipPath);
+                    await Upload(tempZipPath, stoppingToken);
+                    tempZipInfo.Delete();
+                    tempZipInfo.Directory.Delete();
+                    _logger.LogInformation(string.Format("1 zip file uploaded for directory  {0}", path));
+                    return;
+                }
                 var files = di.GetFiles("*", SearchOption.AllDirectories);
                 var i = 0;
                 _logger.LogInformation(string.Format("{0} files found", files.Length));
@@ -44,16 +58,16 @@ namespace CloudSpeed.Uploader
                 {
                     _logger.LogInformation(string.Format("{0} file uploaded, {1:P2}, {2} file cancelled", i, (float)i / files.Length, files.Length - i));
                 }
-                return;
             }
-            var fi = new FileInfo(path);
-            if (fi.Exists)
+            else if (File.Exists(path))
             {
-                await Upload(fi.FullName, stoppingToken);
-                _logger.LogInformation(string.Format("1 file uploaded, {1}", fi.FullName));
-                return;
+                await Upload(path, stoppingToken);
+                _logger.LogInformation(string.Format("1 file uploaded, {1}", path));
             }
-            _logger.LogInformation(string.Format("{0} not found", path));
+            else
+            {
+                _logger.LogInformation(string.Format("{0} not found", path));
+            }
         }
 
         public async Task Upload(string source, CancellationToken stoppingToken)
