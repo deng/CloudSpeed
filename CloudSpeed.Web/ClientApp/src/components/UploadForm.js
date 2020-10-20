@@ -3,11 +3,9 @@ import { connect } from 'react-redux';
 import { Upload, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import { UploadOutlined } from '@ant-design/icons';
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
 import { Form, Input, Button } from 'antd';
 import BraftEditor from 'braft-editor'
-import { Col, Row } from 'antd';
 import QRCode from 'qrcode.react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { itemUrl } from './../app/util';
@@ -36,51 +34,11 @@ const draggerProps = {
     },
 };
 
-function beforeUploadSmallFile(file) {
-    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-    if (!isJpgOrPng) {
-        message.error('You can only upload JPG/PNG file!');
-        return false;
-    }
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-        message.error('Image must smaller than 2MB!');
-        return false;
-    }
-    return isJpgOrPng && isLt2M;
-}
-
-function getBase64(img, callback) {
-    const reader = new FileReader();
-    reader.addEventListener('load', () => callback(reader.result));
-    reader.readAsDataURL(img);
-}
-
-const handleSmallFileChange = (info, setStateFunc) => {
-    if (info.file.status === 'uploading') {
-        //setStateFunc({ imageUrl: "", loading: true, fileList: [] })
-    }
-    else if (info.file.status === 'done') {
-        // Get this url from response in real world.
-        let fileList = [...info.fileList];
-        fileList = fileList.slice(-1);
-        getBase64(info.file.originFileObj, (imageUrl) =>
-            setStateFunc({ imageUrl, loading: false, fileList })
-        );
-    }
-    else if (info.file.status === 'error') {
-        message.error('Image upload fail!');
-        setStateFunc({ imageUrl: "", loading: false, fileList: [] })
-    }
-};
-
 const UploadForm = () => {
     const [dateKeyList, setDateKeyList] = React.useState([]);
     const [editorState, setEditorState] = React.useState(undefined);
     const [formLoading, setFormLoading] = React.useState(false);
     const [formResult, setFormResult] = React.useState({});
-    const [alipayFile, setAlipayFile] = React.useState({ imageUrl: "", loading: false, fileList: [] });
-    const [wxpayFile, setWxpayFile] = React.useState({ imageUrl: "", loading: false, fileList: [] });
     const [form] = Form.useForm();
 
     const onFinish = async values => {
@@ -108,10 +66,8 @@ const UploadForm = () => {
 
     const handleUploadChange = info => {
         const { status, response } = info.file;
-        //console.warn(status);
         setDateKeyList([...info.fileList]);
         if (status !== 'uploading') {
-            //console.log(info.file, info.fileList);
         }
         if (status === 'done') {
             if (response.success) {
@@ -138,13 +94,6 @@ const UploadForm = () => {
             setDateKeyList([]);
         }
     };
-
-    const renderUploadButton = (loading, cover, title) => (
-        <div>
-            {loading ? <LoadingOutlined /> : <PlusOutlined />}
-            <div style={{ marginTop: 8 }}><img style={{ width: '45px' }} src={cover} alt={title} /></div>
-        </div>
-    );
 
     const handleEditorChange = (editorState) => {
         setEditorState(editorState)

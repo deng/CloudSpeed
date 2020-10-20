@@ -23,5 +23,9 @@ namespace CloudSpeed.Sdk
 
         [JsonProperty("id")]
         public int Id { get; set; }
+
+        public int? Timeout { get; set; }
+
+        public bool Debug { get; set; }
     }
 }

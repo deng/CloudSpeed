@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.IO;
 using Autofac;
@@ -12,18 +13,24 @@ using CloudSpeed.Web.Responses;
 using CloudSpeed.Web.Models;
 using CloudSpeed.Web.Requests;
 using CloudSpeed.Sdk;
+using System.Linq;
 
 namespace CloudSpeed.Managers
 {
     public class CloudSpeedManager
     {
+        private readonly ILogger _logger;
         private readonly IPanPasswordHasher _panPasswordHasher;
         private readonly UploadSetting _uploadSetting;
+        private readonly LotusClient _lotusClient;
 
-        public CloudSpeedManager(IPanPasswordHasher panPasswordHasher, UploadSetting uploadSetting)
+        public CloudSpeedManager(ILogger<CloudSpeedManager> logger,
+            IPanPasswordHasher panPasswordHasher, UploadSetting uploadSetting, LotusClient lotusClient)
         {
+            _logger = logger;
             _panPasswordHasher = panPasswordHasher;
             _uploadSetting = uploadSetting;
+            _lotusClient = lotusClient;
         }
 
         public async Task<ApiResponse<string>> CreateUploadLog(PanePostRequest request)
@@ -377,6 +384,83 @@ namespace CloudSpeed.Managers
             catch
             {
                 return string.Empty;
+            }
+        }
+
+        public string ToFileSize(FileInfo fileInfo)
+        {
+            if (fileInfo.Exists)
+                return ToFileSize(fileInfo.Length);
+
+            return string.Empty;
+        }
+
+        public string ToFileSize(long len)
+        {
+            var sizes = new[] { "B", "KiB", "MiB", "GiB", "TiB" };
+            var order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return String.Format("{0:0.##} {1}", len, sizes[order]);
+        }
+
+        public async Task<ApiResponse<DownloadingFileInfo>> GetFileByCid(string cid)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var fileCid = await repository.GetFileCidsByCid(cid);
+                var downloadingFileInfo = new DownloadingFileInfo();
+                if (fileCid != null)
+                {
+                    var path = GetStoragePath(fileCid.Id);
+                    var fileName = await GetFileName(fileCid.Id);
+                    var mimeType = GetMimeType(fileName);
+                    var fileDeal = await repository.GetFileDealByCid(cid);
+                    var uploadLog = await repository.GetUploadLogByDataKey(fileCid.Id);
+                    var lsInfo = new LocalStroeInfo()
+                    {
+                        MimeType = mimeType,
+                        FileName = fileName,
+                        FileSize = ToFileSize(new FileInfo(path)),
+                        Date = fileCid.Created,
+                        Publisher = "ming",
+                        Miner = fileDeal != null ? (fileDeal.Miner + "-" + fileDeal.Status) : string.Empty,
+                        LogId = uploadLog.Id
+                    };
+                    downloadingFileInfo.LocalStroeInfo = lsInfo;
+                    if (fileDeal != null && (fileDeal.Status == FileDealStatus.Success || fileDeal.Status == FileDealStatus.Processing))
+                    {
+                        var queryOffers = await _lotusClient.ClientFindData(new ClientFindDataRequest { Root = new Cid() { Value = cid } });
+                        if (queryOffers.Success)
+                        {
+                            var orderInfos = new List<RetrievalOrderInfo>();
+                            foreach (var item in queryOffers.Result)
+                            {
+                                if (orderInfos.Any(o => o.Miner == item.Miner))
+                                    continue;
+                                var orderInfo = new RetrievalOrderInfo()
+                                {
+                                    Miner = item.Miner,
+                                    MinerPeerId = item.MinerPeer.ID,
+                                    OfferMinPrice = item.MinPrice,
+                                    OfferSize = ToFileSize((long)item.Size),
+                                    Err = item.Err
+                                };
+                                orderInfos.Add(orderInfo);
+                            }
+                            downloadingFileInfo.RetrievalOrderInfos = orderInfos.ToArray();
+                        }
+                        else
+                        {
+                            _logger.LogWarning(queryOffers.Error?.Message);
+                        }
+                    }
+                }
+                return ApiResponse.Ok(downloadingFileInfo);
             }
         }
     }

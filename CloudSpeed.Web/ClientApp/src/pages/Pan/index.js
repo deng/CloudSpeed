@@ -3,8 +3,8 @@ import { connect } from 'react-redux';
 import { useParams } from "react-router-dom";
 import { message, Modal } from 'antd';
 import { Form, Input } from 'antd';
-import { panDownloadUrl } from './../app/util';
-import Api from './../app/api';
+import { panDownloadUrl } from './../../app/util';
+import Api from './../../app/api';
 
 const api = new Api();
 

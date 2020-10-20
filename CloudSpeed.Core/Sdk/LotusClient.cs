@@ -22,7 +22,7 @@ namespace CloudSpeed.Sdk
         */
         public async Task<ResponseBase<ClientImportResponse>> ClientImport(ClientImportRequest model)
         {
-            var rb = new RequestBase<ClientImportRequest>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport" };
+            var rb = new RequestBase<ClientImportRequest>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport", Timeout = 0 };
             return await ExecuteAsync<ClientImportResponse>(rb);
         }
 
@@ -97,7 +97,7 @@ namespace CloudSpeed.Sdk
         private async Task<ResponseBase<T>> ExecuteAsync<T>(RequestBase model)
         {
             var client = new RestClient(m_LotusClientSetting.LotusApi);
-            client.Timeout = m_LotusClientSetting.LotusTimeout;
+            client.Timeout = model.Timeout ?? m_LotusClientSetting.LotusTimeout;
             var request = new RestRequest(Method.POST);
             request.AddHeader("Authorization", "Bearer " + m_LotusClientSetting.LotusToken);
             request.AddHeader("Content-Type", "application/json");
@@ -125,10 +125,11 @@ namespace CloudSpeed.Sdk
             {
                 _logger.LogError(0, "{method} code:{code}, message:{message}", model.Method, data.Error.Code, data.Error.Message);
             }
-            if (data.Result == null)
+            if (data.Result == null || model.Debug)
             {
                 _logger.LogWarning(0, "{method} Content:{message}", model.Method, response.Content);
             }
+
             return data;
         }
 

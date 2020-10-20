@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading;
 using CommandLine;
+using Autofac;
 
 namespace CloudSpeed.Uploader
 {
@@ -51,7 +52,10 @@ namespace CloudSpeed.Uploader
             var services = new ServiceCollection();
             services.AddAppServices(config);
             services.AddSingleton<UploadManager>();
-            var serviceProvider = services.BuildGlobalServices();
+            var serviceProvider = services.BuildGlobalServices(bulder =>
+            {
+                bulder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).SingleInstance();
+            });
             serviceProvider.GetService<UploadManager>().UploadAll(path, zip, cancelToken.Token).Wait();
         }
     }

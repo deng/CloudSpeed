@@ -8,10 +8,14 @@ namespace CloudSpeed.Web
 {
     public static class GlobalServiceExtensions
     {
-        public static IServiceProvider BuildGlobalServices(this IServiceCollection services)
+        public static IServiceProvider BuildGlobalServices(this IServiceCollection services, Action<ContainerBuilder> action = null)
         {
             var builder = new ContainerBuilder();
             builder.Populate(services);
+            if (action != null)
+            {
+                action(builder);
+            }
             var container = builder.Build();
 
             var serviceProvider = new AutofacServiceProvider(container);

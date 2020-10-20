@@ -12,6 +12,8 @@ namespace CloudSpeed.Repositories
 
         Task<UploadLog> GetUploadLog(string id);
 
+        Task<UploadLog> GetUploadLogByDataKey(string dataKey);
+
         Task CreateFileName(FileName entity);
 
         Task<string> GetFileName(string id);
@@ -65,6 +67,8 @@ namespace CloudSpeed.Repositories
         Task UpdateFileDeal(string id, string miner, string dealId, FileDealStatus status);
 
         Task UpdateFileDeal(string id, FileDealStatus status, string error);
+
+        Task<FileDeal> GetFileDealByCid(string cid);
 
         Task CreateFileImport(FileImport entity);
 

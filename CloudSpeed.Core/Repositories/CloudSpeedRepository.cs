@@ -25,6 +25,11 @@ namespace CloudSpeed.Repositories
             return DbContext.UploadLogs.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
         }
 
+        public Task<UploadLog> GetUploadLogByDataKey(string dataKey)
+        {
+            return DbContext.UploadLogs.AsNoTracking().FirstOrDefaultAsync(a => a.DataKey == dataKey);
+        }
+
         public async Task CreateFileName(FileName entity)
         {
             await DbContext.FileNames.AddAsync(entity);
@@ -197,6 +202,11 @@ namespace CloudSpeed.Repositories
                 entity.Error = error;
                 entity.Updated = DateTime.Now;
             }
+        }
+
+        public Task<FileDeal> GetFileDealByCid(string cid)
+        {
+            return DbContext.FileDeals.AsNoTracking().FirstOrDefaultAsync(a => a.Cid == cid);
         }
 
         public async Task CreateFileImport(FileImport entity)

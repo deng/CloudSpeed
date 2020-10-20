@@ -15,8 +15,10 @@ import en_US from 'antd/es/locale/en_US';
 //import App from './Home';
 import registerServiceWorker from './registerServiceWorker';
 import Layout from './components/Layout';
-import Upload from './components/Home';
-import Pan from './components/Pan';
+import Upload from './pages/Upload';
+import Pan from './pages/Pan';
+import MyFiles from './pages/MyFiles';
+import Download from './pages/Download';
 
 // Create browser history to use in the Redux store
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
@@ -32,6 +34,8 @@ ReactDOM.render(
                 <Layout>
                     <Route exact path='/' component={Upload} />
                     <Route exact path='/pan/item-:id' component={Pan} />
+                    <Route exact path='/download' component={Download} />
+                    <Route exact path='/myfiles' component={MyFiles} />
                 </Layout>
             </ConfigProvider>
         </ConnectedRouter>

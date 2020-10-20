@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Route } from 'react-router';
 import Layout from './components/Layout';
-import Home from './components/Home';
-import Pan from './components/Pan';
+import Home from './page/Upload';
+import Pan from './page/Pan';
 
 export default () => (
     <Layout>

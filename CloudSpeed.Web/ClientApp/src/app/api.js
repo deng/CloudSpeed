@@ -66,4 +66,16 @@ export default class Api {
             });
         });
     };
+    getDownloadInfoByCid = (values) => {
+        console.warn(values);
+        return new Promise((resolve, reject) => {
+            fetch(`/api/download/${values.cid}`, {
+                method: 'GET',
+            }).then(response => response.json()).then(data => {
+                resolve({ ...data });
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    };
 }
