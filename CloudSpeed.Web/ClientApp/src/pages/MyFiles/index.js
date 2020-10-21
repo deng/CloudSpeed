@@ -5,6 +5,7 @@ import UploadForm from './../../components/UploadForm';
 const MyFiles = () => (
   <div>
     <UploadForm />
+    
   </div>
 );
 
