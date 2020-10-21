@@ -317,13 +317,17 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
                         return;
                     }
-                    /*
-                    TODO: 计算ProposeStorageDeal
+
                     _logger.LogWarning(0, string.Format("client deal size ..."));
                     var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                    if (!dealSize.Success)
+                    {
+                        _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
+                        return;
+                    }
+                    _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
                     askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
-                    */
-                    askingPrice = (long)((arp * fileSize * 2) / (1 << 30)) + 1;
+
                     if (askingPrice == 0)
                     {
                         _logger.LogError(0, "asking price should be more than zero.");
