@@ -26,6 +26,12 @@ namespace CloudSpeed.Sdk
             return await ExecuteAsync<ClientImportResponse>(rb);
         }
 
+        public async Task<ResponseBase<DataSize>> ClientDealSize(Cid model)
+        {
+            var rb = new RequestBase<Cid>() { ParamsData = new[] { model }, Method = "Filecoin.ClientDealSize", Debug = true };
+            return await ExecuteAsync<DataSize>(rb);
+        }
+
         /*
         {"jsonrpc":"2.0","method":"Filecoin.ClientHasLocal","params":[{"/":"bafk2bzacebhgxx676o5asbbrtegsl4orgpzke22ezeqvuyvmptf4y5g2o45za"}],"id":0}
         */

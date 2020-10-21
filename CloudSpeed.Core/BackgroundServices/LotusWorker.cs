@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CloudSpeed.Entities;
 using CloudSpeed.Managers;
-using CloudSpeed.Powergate;
 using CloudSpeed.Sdk;
 using CloudSpeed.Services;
-using Google.Protobuf;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -75,6 +72,7 @@ namespace CloudSpeed.BackgroundServices
                             _logger.LogInformation("found file {count} deals", fileDeals.Count());
                             foreach (var fileDeal in fileDeals)
                             {
+                                _logger.LogInformation("client start deal  {datacid}(dealid) {dealid}(datacid)", fileDeal.Id, fileDeal.Cid);
                                 await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, stoppingToken);
                             }
                             skip += limit;
@@ -265,7 +263,7 @@ namespace CloudSpeed.BackgroundServices
                     {
                         _logger.LogWarning(0, string.Format("limit transfering by count {0} >= {1}(max).", _transferingDealIdBytes.Count, _lotusClientSetting.MaxTransferingCount));
                     }
-                    
+
                     await Task.Delay(10000, stoppingToken);
                 }
 
@@ -319,7 +317,13 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
                         return;
                     }
-                    askingPrice = arp;
+                    /*
+                    TODO: 计算ProposeStorageDeal
+                    _logger.LogWarning(0, string.Format("client deal size ..."));
+                    var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                    askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
+                    */
+                    askingPrice = (long)((arp * fileSize * 2) / (1 << 30)) + 1;
                     if (askingPrice == 0)
                     {
                         _logger.LogError(0, "asking price should be more than zero.");
