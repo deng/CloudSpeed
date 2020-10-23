@@ -33,5 +33,9 @@ namespace CloudSpeed.Entities
 
         [Column("created")]
         public DateTime Created { get; set; } = DateTime.Now;
+
+        [Column("user_id")]
+        [StringLength(StringLengthConstants.StringLengthObjectId)]
+        public string UserId { get; set; }
     }
 }

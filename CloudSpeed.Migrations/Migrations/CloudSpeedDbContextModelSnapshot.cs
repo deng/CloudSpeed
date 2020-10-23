@@ -14,7 +14,7 @@ namespace CloudSpeed.Migrations.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.1");
+                .HasAnnotation("ProductVersion", "3.1.9");
 
             modelBuilder.Entity("CloudSpeed.Entities.FileCid", b =>
                 {
@@ -92,6 +92,36 @@ namespace CloudSpeed.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("dt_file_deal");
+                });
+
+            modelBuilder.Entity("CloudSpeed.Entities.FileGroup", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnName("id")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(36);
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnName("created")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GroupId")
+                        .HasColumnName("group_id")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(36);
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnName("updated")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("name")
+                        .HasColumnName("name")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(1024);
+
+                    b.HasKey("Id");
+
+                    b.ToTable("dt_file_group");
                 });
 
             modelBuilder.Entity("CloudSpeed.Entities.FileImport", b =>
@@ -211,10 +241,24 @@ namespace CloudSpeed.Migrations.Migrations
                         .HasColumnName("created")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Format")
+                        .HasColumnName("format")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(128);
+
+                    b.Property<string>("GroupId")
+                        .HasColumnName("group_id")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(36);
+
                     b.Property<string>("Name")
                         .HasColumnName("name")
                         .HasColumnType("TEXT")
                         .HasMaxLength(1024);
+
+                    b.Property<long>("Size")
+                        .HasColumnName("size")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -251,12 +295,19 @@ namespace CloudSpeed.Migrations.Migrations
                         .HasColumnType("TEXT")
                         .HasMaxLength(256);
 
+                    b.Property<string>("UserId")
+                        .HasColumnName("user_id")
+                        .HasColumnType("TEXT")
+                        .HasMaxLength(36);
+
                     b.Property<string>("WxpayFileKey")
                         .HasColumnName("wxpay_file_key")
                         .HasColumnType("TEXT")
                         .HasMaxLength(256);
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("dt_upload_log");
                 });

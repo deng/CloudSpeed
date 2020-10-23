@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using CloudSpeed.Web.Responses;
 
-namespace CloudSpeed.AdminWeb.Requests
+namespace CloudSpeed.Web.Requests
 {
     public class GetListRequest
     {

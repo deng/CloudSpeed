@@ -11,6 +11,10 @@ namespace CloudSpeed.Migrations
             {
                 dbContext.Database.Migrate();
             }
+            using (var dbContext = new MemberDbContextFactory().CreateDbContext(args))
+            {
+                dbContext.Database.Migrate();
+            }
             Console.WriteLine("Done");
         }
     }

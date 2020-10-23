@@ -37,6 +37,24 @@ namespace CloudSpeed.Web
 
                     return setting;
                 });
+
+            services.Configure<MemberDbSetting>(configuration.GetSection(nameof(MemberDbSetting)),
+                (serviceProvider, setting) =>
+                {
+                    if (setting == null || string.IsNullOrEmpty(setting.Connection))
+                        throw new ApplicationException("please setup /MemberDbSetting at appsettings.json");
+
+                    return setting;
+                });
+
+            services.Configure<JwtSetting>(configuration.GetSection(nameof(JwtSetting)),
+                (serviceProvider, setting) =>
+                {
+                    if (setting == null || string.IsNullOrEmpty(setting.JwtTokenKey))
+                        throw new ApplicationException("please setup /JwtSetting at appsettings.json");
+
+                    return setting;
+                });
         }
 
         public static IServiceCollection Configure<TSetting>(this IServiceCollection services,

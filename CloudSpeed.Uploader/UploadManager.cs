@@ -126,11 +126,12 @@ namespace CloudSpeed.Uploader
                     var dataKey = SequentialGuid.NewGuidString();
                     try
                     {
-                        var target = _cloudSpeedManager.GetStoragePath(dataKey);
+                        var target = _uploadSetting.GetStoragePath(dataKey);
                         File.Copy(source, target);
                         await _cloudSpeedManager.CreateFileMd5(md5, dataKey);
-                        await _cloudSpeedManager.CreateFileName(dataKey, sourceInfo.Name);
-                        await _cloudSpeedManager.CreateUploadLog(new PanePostRequest { DataKey = dataKey });
+                        await _cloudSpeedManager.CreateFileName(dataKey, sourceInfo.Name, sourceSize);
+                        //TODO:
+                        await _cloudSpeedManager.CreateUploadLog(null, new PanePostRequest { DataKey = dataKey });
                         _logger.LogInformation("file upload successfully {dataKey} - {source}", dataKey, source);
                     }
                     catch (System.Exception ex)

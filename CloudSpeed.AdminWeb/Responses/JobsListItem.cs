@@ -13,7 +13,13 @@ namespace CloudSpeed.AdminWeb.Responses
 
         public string JobId { get; set; }
 
-        public FileJobStatus Status { get; set; }
+        public string Status { get; set; }
+
+        public string FileName { get; set; }
+
+        public string FileSize { get; set; }
+
+        public string Format { get; set; }
 
         public string Error { get; set; }
 

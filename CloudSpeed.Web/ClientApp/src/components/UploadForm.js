@@ -8,6 +8,7 @@ import { Form, Input, Button } from 'antd';
 import BraftEditor from 'braft-editor'
 import QRCode from 'qrcode.react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+import * as UploadStore from '../store/Upload';
 import { itemUrl } from './../app/util';
 import Api from './../app/api';
 
@@ -34,7 +35,7 @@ const draggerProps = {
     },
 };
 
-const UploadForm = () => {
+const UploadForm = (props) => {
     const [dateKeyList, setDateKeyList] = React.useState([]);
     const [editorState, setEditorState] = React.useState(undefined);
     const [formLoading, setFormLoading] = React.useState(false);
@@ -42,9 +43,11 @@ const UploadForm = () => {
     const [form] = Form.useForm();
 
     const onFinish = async values => {
+        props.upload(values, editorState);
+        return;
         setFormLoading(true);
         try {
-            const data = await api.uploadPan(values, editorState);
+            const data = await api.c(values, editorState);
             if (data.success) {
                 setFormResult({ ...data });
             } else {
@@ -100,14 +103,14 @@ const UploadForm = () => {
     };
 
     const handleCloseModal = () => {
-        setFormResult({});
+        props.close();
     };
 
     return (
         <React.Fragment>
             <Modal
                 title="Publish successfully"
-                visible={formResult.success}
+                visible={props.result.success}
                 onCancel={handleCloseModal}
                 footer={[
                     <Button key="submit" onClick={handleCloseModal}>
@@ -116,11 +119,11 @@ const UploadForm = () => {
                 ]}
             >
                 <p>Please use the link below to download or access the file</p>
-                <p><Input value={`${itemUrl(formResult.data)}`} suffix={<CopyToClipboard text={`${itemUrl(formResult.data)}`} onCopy={() => message.success(`copy successfully.`)}>
+                <p><Input value={`${itemUrl(props.result.data)}`} suffix={<CopyToClipboard text={`${itemUrl(props.result.data)}`} onCopy={() => message.success(`copy successfully.`)}>
                     <Button>Click Copy</Button>
                 </CopyToClipboard>} /></p>
                 <p>Right click (or long press) the picture below to save the picture and forward it</p>
-                <p style={{ textAlign: "center" }}><QRCode size={250} value={`${itemUrl(formResult.data)}`} /></p>
+                <p style={{ textAlign: "center" }}><QRCode size={250} value={`${itemUrl(props.result.data)}`} /></p>
             </Modal>
             <Form
                 form={form}
@@ -149,11 +152,11 @@ const UploadForm = () => {
                     <Input placeholder="Enter the extraction code, leave blank as unencrypted" />
                 </Form.Item>
                 <Form.Item>
-                    <Button loading={formLoading} type="primary" icon={<UploadOutlined />} htmlType="submit">Publish</Button>
+                    <Button loading={formLoading || props.uploading} type="primary" icon={<UploadOutlined />} htmlType="submit">Publish</Button>
                 </Form.Item>
             </Form>
         </React.Fragment>
     );
 };
 
-export default connect()(UploadForm);
+export default connect(state => state.upload, UploadStore.actionCreators)(UploadForm);

@@ -3,6 +3,7 @@ using CloudSpeed.Entities;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using CloudSpeed.Entities.DTO;
 
 namespace CloudSpeed.Repositories
 {
@@ -14,9 +15,21 @@ namespace CloudSpeed.Repositories
 
         Task<UploadLog> GetUploadLogByDataKey(string dataKey);
 
+        Task UpdateUploadLogByDataKey(string dataKey, string userId);
+
+        Task<IEnumerable<UploadLog>> GetUploadLogs(int skip, int limit);
+
+        Task<IEnumerable<UploadLog>> GetUploadLogs(UploadParamMap paramMap, int skip, int limit);
+
+        Task<int> CountUploadLogs(UploadParamMap paramMap);
+
         Task CreateFileName(FileName entity);
 
+        Task UpdateFileName(string id, long size, string format);
+
         Task<string> GetFileName(string id);
+
+        Task<IEnumerable<FileName>> GetFileNames(int skip, int limit);
 
         Task CreateFileCid(FileCid entity);
 
@@ -27,7 +40,7 @@ namespace CloudSpeed.Repositories
         Task<IList<FileCid>> GetFileCids(FileCidStatus status, int skip, int limit);
 
         Task<FileCid> GetFileCidsByCid(string cid);
-        
+
         Task<string> GetFileCidByDealId(string dealId);
 
         Task UpdateFileCid(string Id, string cid, FileCidStatus status);
@@ -44,9 +57,9 @@ namespace CloudSpeed.Repositories
 
         IDictionary<string, int> CountJobsGroupByStatus();
 
-        Task<IList<FileJob>> GetFileJobs(int skip, int limit);
+        Task<IList<FileJob>> GetFileJobs(FileJobParamMap paramMap, int skip, int limit);
 
-        Task<int> CountFileJobs();
+        Task<int> CountFileJobs(FileJobParamMap paramMap);
 
         Task CreateFileJob(FileJob entity);
 
@@ -58,9 +71,9 @@ namespace CloudSpeed.Repositories
 
         IDictionary<string, int> CountDealsGroupByStatus();
 
-        Task<IList<FileDeal>> GetFileDeals(int skip, int limit);
+        Task<IList<FileDeal>> GetFileDeals(FileDealParamMap paramMap, int skip, int limit);
 
-        Task<int> CountFileDeals();
+        Task<int> CountFileDeals(FileDealParamMap paramMap);
 
         Task CreateFileDeal(FileDeal entity);
 

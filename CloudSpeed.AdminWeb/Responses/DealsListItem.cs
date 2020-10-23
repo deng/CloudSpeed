@@ -8,14 +8,20 @@ namespace CloudSpeed.AdminWeb.Responses
     public class DealsListItem
     {
         public string Id { get; set; }
-        
+
         public string Cid { get; set; }
 
         public string DealId { get; set; }
-        
+
         public string Miner { get; set; }
 
-        public FileDealStatus Status { get; set; }
+        public string Status { get; set; }
+
+        public string FileName { get; set; }
+
+        public string FileSize { get; set; }
+
+        public string Format { get; set; }
 
         public string Error { get; set; }
 

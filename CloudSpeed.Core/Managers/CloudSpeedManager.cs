@@ -14,6 +14,7 @@ using CloudSpeed.Web.Models;
 using CloudSpeed.Web.Requests;
 using CloudSpeed.Sdk;
 using System.Linq;
+using CloudSpeed.Entities.DTO;
 
 namespace CloudSpeed.Managers
 {
@@ -33,7 +34,7 @@ namespace CloudSpeed.Managers
             _lotusClient = lotusClient;
         }
 
-        public async Task<ApiResponse<string>> CreateUploadLog(PanePostRequest request)
+        public async Task<ApiResponse<string>> CreateUploadLog(string userId, PanePostRequest request)
         {
             var hashedPassword = string.Empty;
             if (!string.IsNullOrEmpty(request.Password))
@@ -47,6 +48,7 @@ namespace CloudSpeed.Managers
                 HashedPassword = hashedPassword,
                 AlipayFileKey = request.AlipayKey,
                 WxpayFileKey = request.WxpayKey,
+                UserId = userId
             };
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
@@ -83,10 +85,11 @@ namespace CloudSpeed.Managers
                     Created = uploadLog.Created,
                     FileName = fileName,
                 };
-                var fileFullPath = GetStoragePath(uploadLog.DataKey);
+                var fileFullPath = _uploadSetting.GetStoragePath(uploadLog.DataKey);
                 if (File.Exists(fileFullPath))
                 {
                     item.FileSize = new FileInfo(fileFullPath).Length;
+                    item.MimeType = fileName.GetMimeType();
                 }
                 var fileCid = await repository.GetFileCid(uploadLog.DataKey);
                 if (fileCid != null && fileCid.Status == FileCidStatus.Success)
@@ -127,20 +130,58 @@ namespace CloudSpeed.Managers
                 if (uploadLog == null)
                     return ApiResponse.NotFound<FilDataInfo>("invalid upload log id");
 
-                var path = GetStoragePath(uploadLog.DataKey);
+                var path = _uploadSetting.GetStoragePath(uploadLog.DataKey);
                 var fileName = await GetFileName(uploadLog.DataKey);
-                var mimeType = GetMimeType(fileName);
+                var mimeType = fileName.GetMimeType();
 
                 return ApiResponse.Ok(new FilDataInfo { Path = path, FileName = fileName, MimeType = mimeType });
             }
         }
 
-        public async Task<ApiResponse<string>> CreateFileName(string id, string name)
+        public async Task<ApiResponse<PagedResult<MyFileInfo>>> GetMyFiles(string userId, MyFilesPostRequest request)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
-                var entity = new FileName() { Id = id, Name = name };
+                var paramMap = new UploadParamMap() { UserId = userId };
+                var uploadLogs = await repository.GetUploadLogs(paramMap, request.Skip, request.Limit);
+                var total = await repository.CountUploadLogs(paramMap);
+
+                var myFiles = new List<MyFileInfo>();
+                foreach (var uploadLog in uploadLogs)
+                {
+                    var path = _uploadSetting.GetStoragePath(uploadLog.DataKey);
+                    var fileName = await GetFileName(uploadLog.DataKey);
+                    var mimeType = fileName.GetMimeType();
+                    var fileInfo = new FileInfo(path);
+                    var fileSize = (fileInfo.Exists ? fileInfo.Length : 0).ToFileSize();
+                    var fileCid = await repository.GetFileCid(uploadLog.DataKey);
+                    myFiles.Add(new MyFileInfo
+                    {
+                        FileName = fileName,
+                        FileSize = fileSize,
+                        Id = uploadLog.Id,
+                        DataCid = fileCid?.Cid,
+                        Created = uploadLog.Created,
+                        Format = mimeType
+                    });
+                }
+                return ApiResponse.Ok(request.ToPagedResult(myFiles, total));
+            }
+        }
+
+        public async Task<ApiResponse<string>> CreateFileName(string id, string name, long size)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var entity = new FileName()
+                {
+                    Id = id,
+                    Name = name,
+                    Size = size,
+                    Format = name.GetMimeType()
+                };
                 await repository.CreateFileName(entity);
                 await repository.Commit();
                 return ApiResponse.Ok(entity.Id);
@@ -287,23 +328,6 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public string GetMimeType(string fileName)
-        {
-            return MimeTypes.GetMimeType(fileName);
-        }
-
-        public string GetStoragePath(string key)
-        {
-            var fullPath = Path.Combine(_uploadSetting.Storages[0], key);
-            return fullPath;
-        }
-
-        public string GetRewardPath(string key)
-        {
-            var fullPath = Path.Combine(_uploadSetting.RewardPath, key);
-            return fullPath;
-        }
-
         public async Task<bool> CheckFileMd5ById(string id)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
@@ -316,7 +340,7 @@ namespace CloudSpeed.Managers
 
         public async Task<ApiResponse<FileMd5>> GetFileMd5ByDataKey(string key)
         {
-            var path = GetStoragePath(key);
+            var path = _uploadSetting.GetStoragePath(key);
             if (!File.Exists(path))
                 return ApiResponse.NotFound<FileMd5>("file not exists");
             var md5 = GetMD5HashFromFile(path);
@@ -336,7 +360,7 @@ namespace CloudSpeed.Managers
 
         public async Task<ApiResponse<string>> CreateFileMd5ByDataKey(string key)
         {
-            var path = GetStoragePath(key);
+            var path = _uploadSetting.GetStoragePath(key);
             if (!File.Exists(path))
                 return ApiResponse.NotFound<string>("file not exists");
             var md5 = GetMD5HashFromFile(path);
@@ -387,26 +411,6 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public string ToFileSize(FileInfo fileInfo)
-        {
-            if (fileInfo.Exists)
-                return ToFileSize(fileInfo.Length);
-
-            return string.Empty;
-        }
-
-        public string ToFileSize(long len)
-        {
-            var sizes = new[] { "B", "KiB", "MiB", "GiB", "TiB" };
-            var order = 0;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            return String.Format("{0:0.##} {1}", len, sizes[order]);
-        }
-
         public async Task<ApiResponse<DownloadingFileInfo>> GetFileByCid(string cid)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
@@ -416,16 +420,16 @@ namespace CloudSpeed.Managers
                 var downloadingFileInfo = new DownloadingFileInfo();
                 if (fileCid != null)
                 {
-                    var path = GetStoragePath(fileCid.Id);
+                    var path = _uploadSetting.GetStoragePath(fileCid.Id);
                     var fileName = await GetFileName(fileCid.Id);
-                    var mimeType = GetMimeType(fileName);
+                    var mimeType = fileName.GetMimeType();
                     var fileDeal = await repository.GetFileDealByCid(cid);
                     var uploadLog = await repository.GetUploadLogByDataKey(fileCid.Id);
                     var lsInfo = new LocalStroeInfo()
                     {
                         MimeType = mimeType,
                         FileName = fileName,
-                        FileSize = ToFileSize(new FileInfo(path)),
+                        FileSize = new FileInfo(path).ToFileSize(),
                         Date = fileCid.Created,
                         Publisher = "ming",
                         Miner = fileDeal != null ? (fileDeal.Miner + "-" + fileDeal.Status) : string.Empty,
@@ -447,7 +451,7 @@ namespace CloudSpeed.Managers
                                     Miner = item.Miner,
                                     MinerPeerId = item.MinerPeer.ID,
                                     OfferMinPrice = item.MinPrice,
-                                    OfferSize = ToFileSize((long)item.Size),
+                                    OfferSize = ((long)item.Size).ToFileSize(),
                                     Err = item.Err
                                 };
                                 orderInfos.Add(orderInfo);

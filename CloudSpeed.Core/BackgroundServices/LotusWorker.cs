@@ -8,6 +8,7 @@ using CloudSpeed.Entities;
 using CloudSpeed.Managers;
 using CloudSpeed.Sdk;
 using CloudSpeed.Services;
+using CloudSpeed.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ namespace CloudSpeed.BackgroundServices
         private readonly ILogger<LotusWorker> _logger;
         private readonly CloudSpeedManager _cloudSpeedManager;
         private readonly LotusClientSetting _lotusClientSetting;
+        private readonly UploadSetting _uploadSetting;
 
         private readonly StorageDealStatus[] _transferingOrBeforeTransferStatus = new StorageDealStatus[]
         {
@@ -41,11 +43,12 @@ namespace CloudSpeed.BackgroundServices
         private readonly ConcurrentDictionary<string, long> _processingDealIdBytes = new ConcurrentDictionary<string, long>();
         private readonly ConcurrentDictionary<string, long> _transferingDealIdBytes = new ConcurrentDictionary<string, long>();
 
-        public LotusWorker(ILogger<LotusWorker> logger, CloudSpeedManager cloudSpeedManager, LotusClientSetting lotusClientSetting)
+        public LotusWorker(ILogger<LotusWorker> logger, CloudSpeedManager cloudSpeedManager, LotusClientSetting lotusClientSetting, UploadSetting uploadSetting)
         {
             _logger = logger;
             _cloudSpeedManager = cloudSpeedManager;
             _lotusClientSetting = lotusClientSetting;
+            _uploadSetting = uploadSetting;
         }
 
         private async Task CreateSentryBox1(CancellationToken stoppingToken)
@@ -196,7 +199,7 @@ namespace CloudSpeed.BackgroundServices
                             }
                             foreach (var fileCid in fileCids)
                             {
-                                var path = _cloudSpeedManager.GetStoragePath(fileCid.Id);
+                                var path = _uploadSetting.GetStoragePath(fileCid.Id);
                                 if (File.Exists(path))
                                 {
                                     var cid = string.Empty;
@@ -277,7 +280,7 @@ namespace CloudSpeed.BackgroundServices
                     await _cloudSpeedManager.UpdateFileDeal(fdId, FileDealStatus.Failed, "fileCid not found");
                     return;
                 }
-                var fileFullPath = _cloudSpeedManager.GetStoragePath(fileCid.Id);
+                var fileFullPath = _uploadSetting.GetStoragePath(fileCid.Id);
                 if (!File.Exists(fileFullPath))
                 {
                     _logger.LogError(0, string.Format("file not found {0}.", cid));

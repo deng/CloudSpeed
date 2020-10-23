@@ -72,9 +72,10 @@ namespace CloudSpeed.AdminWeb
             });
 
             services.AddAppServices(Configuration);
-            services.AddSingleton<DealsManager>();
-            services.AddSingleton<ImportsManager>();
-            services.AddSingleton<JobsManager>();
+            services.AddTransient<DealsManager>();
+            services.AddTransient<ImportsManager>();
+            services.AddTransient<JobsManager>();
+            services.AddTransient<UploadsManager>();
 
             ServiceProvider = services.BuildGlobalServices();
         }

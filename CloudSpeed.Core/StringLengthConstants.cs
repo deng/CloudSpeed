@@ -19,5 +19,7 @@ namespace CloudSpeed
         public const int StringLengthMiner = 18;
 
         public const int StringLengthPath = 2048;
+
+        public const int StringLengthFormat = 128;
     }
 }

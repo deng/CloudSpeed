@@ -18,6 +18,8 @@ namespace CloudSpeed.Web.Models
 
         public long FileSize { get; set; }
 
+        public string MimeType { get; set; }
+
         public bool Secret { get; set; }
 
         public DateTime Created { get; set; }

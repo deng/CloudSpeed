@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using System.Runtime.InteropServices;
+using CloudSpeed.Entities.DTO;
 
 namespace CloudSpeed.Repositories
 {
@@ -30,14 +31,67 @@ namespace CloudSpeed.Repositories
             return DbContext.UploadLogs.AsNoTracking().FirstOrDefaultAsync(a => a.DataKey == dataKey);
         }
 
+        public async Task UpdateUploadLogByDataKey(string dataKey, string userId)
+        {
+            var uploadLogs = await DbContext.UploadLogs.Where(a => a.DataKey == dataKey).ToListAsync();
+            foreach (var uploadLog in uploadLogs)
+            {
+                uploadLog.UserId = userId;
+            }
+        }
+
+        public async Task<IEnumerable<UploadLog>> GetUploadLogs(int skip, int limit)
+        {
+            var myFiles = await DbContext.UploadLogs.AsNoTracking().OrderByDescending(a => a.Created).Skip(skip).Take(limit).ToListAsync();
+            return myFiles;
+        }
+
+        public async Task<IEnumerable<UploadLog>> GetUploadLogs(UploadParamMap paramMap, int skip, int limit)
+        {
+            var query = CreateUploadLogQuery(paramMap);
+            var myFiles = await query.AsNoTracking().OrderByDescending(a => a.Created).Skip(skip).Take(limit).ToListAsync();
+            return myFiles;
+        }
+
+        public Task<int> CountUploadLogs(UploadParamMap paramMap)
+        {
+            var query = CreateUploadLogQuery(paramMap);
+            return query.CountAsync();
+        }
+
+        private IQueryable<UploadLog> CreateUploadLogQuery(UploadParamMap paramMap)
+        {
+            var query = DbContext.UploadLogs.AsQueryable();
+            if (!string.IsNullOrEmpty(paramMap.UserId))
+            {
+                query = query.Where(q => q.UserId == paramMap.UserId);
+            }
+            return query;
+        }
+
         public async Task CreateFileName(FileName entity)
         {
             await DbContext.FileNames.AddAsync(entity);
         }
 
+        public async Task UpdateFileName(string id, long size, string format)
+        {
+            var fileName = await DbContext.FileNames.FirstOrDefaultAsync(a => a.Id == id);
+            if (fileName != null)
+            {
+                fileName.Size = size;
+                fileName.Format = format;
+            }
+        }
+
         public Task<string> GetFileName(string id)
         {
             return DbContext.FileNames.Where(a => a.Id == id).Select(a => a.Name).FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<FileName>> GetFileNames(int skip, int limit)
+        {
+            return await DbContext.FileNames.AsNoTracking().OrderBy(a => a.Id).Skip(skip).Take(limit).ToListAsync();
         }
 
         public async Task CreateFileCid(FileCid entity)
@@ -118,14 +172,26 @@ namespace CloudSpeed.Repositories
             return DbContext.FileJobs.AsEnumerable().GroupBy(a => a.Status).ToDictionary(a => a.Key.ToString(), a => a.Count());
         }
 
-        public async Task<IList<FileJob>> GetFileJobs(int skip, int limit)
+        public async Task<IList<FileJob>> GetFileJobs(FileJobParamMap paramMap, int skip, int limit)
         {
-            return await DbContext.FileJobs.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
+            var query = CreateFileJobsQuery(paramMap);
+            return await query.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
         }
 
-        public async Task<int> CountFileJobs()
+        public async Task<int> CountFileJobs(FileJobParamMap paramMap)
         {
-            return await DbContext.FileJobs.CountAsync();
+            var query = CreateFileJobsQuery(paramMap);
+            return await query.CountAsync();
+        }
+
+        private IQueryable<FileJob> CreateFileJobsQuery(FileJobParamMap paramMap)
+        {
+            var query = DbContext.FileJobs.AsQueryable();
+            if (paramMap.Status.HasValue)
+            {
+                query = query.Where(q => q.Status == paramMap.Status.Value);
+            }
+            return query;
         }
 
         public async Task CreateFileJob(FileJob entity)
@@ -166,14 +232,26 @@ namespace CloudSpeed.Repositories
             return DbContext.FileDeals.AsEnumerable().GroupBy(a => a.Status).ToDictionary(a => a.Key.ToString(), a => a.Count());
         }
 
-        public async Task<IList<FileDeal>> GetFileDeals(int skip, int limit)
+        public async Task<IList<FileDeal>> GetFileDeals(FileDealParamMap paramMap, int skip, int limit)
         {
-            return await DbContext.FileDeals.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
+            var query = CreateFileDealsQuery(paramMap);
+            return await query.AsNoTracking().Skip(skip).Take(limit).ToListAsync();
         }
 
-        public async Task<int> CountFileDeals()
+        public async Task<int> CountFileDeals(FileDealParamMap paramMap)
         {
-            return await DbContext.FileDeals.CountAsync();
+            var query = CreateFileDealsQuery(paramMap);
+            return await query.CountAsync();
+        }
+
+        private IQueryable<FileDeal> CreateFileDealsQuery(FileDealParamMap paramMap)
+        {
+            var query = DbContext.FileDeals.AsQueryable();
+            if (paramMap.Status.HasValue)
+            {
+                query = query.Where(q => q.Status == paramMap.Status.Value);
+            }
+            return query;
         }
 
         public async Task CreateFileDeal(FileDeal entity)

@@ -12,7 +12,8 @@ namespace CloudSpeed.Entities
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<UploadLog>().HasIndex(p => p.UserId);
         }
 
         public DbSet<UploadLog> UploadLogs { get; set; }
@@ -26,7 +27,9 @@ namespace CloudSpeed.Entities
         public DbSet<FileJob> FileJobs { get; set; }
 
         public DbSet<FileDeal> FileDeals { get; set; }
-        
+
         public DbSet<FileImport> FileImports { get; set; }
+
+        public DbSet<FileGroup> FileGroups { get; set; }
     }
 }

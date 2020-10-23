@@ -12,22 +12,12 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading;
-using CommandLine;
 using Autofac;
 
 namespace CloudSpeed.Uploader
 {
     class Program
     {
-        public class Options
-        {
-            [Option('p', "path", Required = true, HelpText = "The path to a file or directory that is to be imported.")]
-            public string Path { get; set; }
-
-            [Option('z', "z", Required = false, HelpText = "Compress the files.")]
-            public bool Zip { get; set; }
-        }
-
         static void Main(string[] args)
         {
             if (args == null || args.Length == 0)

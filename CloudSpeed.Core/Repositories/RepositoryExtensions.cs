@@ -1,5 +1,6 @@
 ﻿using System;
 using CloudSpeed.Entities;
+using CloudSpeed.Identity;
 using CloudSpeed.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,14 @@ namespace CloudSpeed.Repositories
 
                 var connectionName = typeof(CloudSpeedDbContext).Name;
                 UseDbServerType(options, connectionName, setting);
+            });
+            services.AddDbContext<MemberDbContext>((serviceProvider, options) =>
+            {
+                var setting = serviceProvider.GetRequiredService<MemberDbSetting>();
+                options.UseSqlite(setting.Connection, q =>
+                {
+                    q.MigrationsAssembly(setting.MigrationsAssemblyName);
+                });
             });
             return services;
         }

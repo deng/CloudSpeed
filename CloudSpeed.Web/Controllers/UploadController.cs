@@ -12,6 +12,7 @@ using Microsoft.Net.Http.Headers;
 using CloudSpeed.Services;
 using CloudSpeed.Managers;
 using CloudSpeed.Settings;
+using Microsoft.AspNetCore.Authorization;
 
 namespace filshareapp.Controllers
 {
@@ -68,7 +69,7 @@ namespace filshareapp.Controllers
                 else
                 {
                     await _CloudSpeedManager.CreateFileMd5ByDataKey(item.Item1);
-                    await _CloudSpeedManager.CreateFileName(item.Item1, item.Item2);
+                    await _CloudSpeedManager.CreateFileName(item.Item1, item.Item2, fileSize);
                     return Ok(item.Item1);
                 }
             }
@@ -124,12 +125,12 @@ namespace filshareapp.Controllers
 
         private string GetBigStoragePath(string key)
         {
-            return _CloudSpeedManager.GetStoragePath(key);
+            return _uploadSetting.GetStoragePath(key);
         }
 
         private string GetRewardPath(string key)
         {
-            return _CloudSpeedManager.GetRewardPath(key);
+            return _uploadSetting.GetRewardPath(key);
         }
     }
 }

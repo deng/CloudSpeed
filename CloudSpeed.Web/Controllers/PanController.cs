@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CloudSpeed.Managers;
 using CloudSpeed.Web.Requests;
 using CloudSpeed.Web.Responses;
+using Microsoft.AspNetCore.Authorization;
 
 namespace filshareapp.Controllers
 {
@@ -27,7 +28,8 @@ namespace filshareapp.Controllers
         [HttpPost]
         public async Task<ActionResult> Post(PanePostRequest requst)
         {
-            var data = await _CloudSpeedManager.CreateUploadLog(requst);
+            var userId = await GetAuthrizedUserId();
+            var data = await _CloudSpeedManager.CreateUploadLog(userId, requst);
             return Result(data);
         }
 

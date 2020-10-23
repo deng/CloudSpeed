@@ -1,4 +1,5 @@
 import React from 'react';
+import { Tooltip } from 'antd';
 import DataTable from 'components/DataTable';
 import Icon from 'components/Icon';
 import Button from 'components/Button';
@@ -25,12 +26,24 @@ export default (self) => [
   {
     title: 'Cid',
     name: 'cid',
-    tableItem: {},
+    tableItem: {
+      render: (text, record) => (
+        <Tooltip title={text}>
+          <span>{text && text.slice(-6)}</span>
+        </Tooltip>
+      )
+    },
   },
   {
     title: 'DealId',
     name: 'dealId',
-    tableItem: {},
+    tableItem: {
+      render: (text, record) => (
+        <Tooltip title={text}>
+          <span>{text && text.slice(-6)}</span>
+        </Tooltip>
+      )
+    },
   },
   {
     title: 'Miner',
@@ -38,14 +51,43 @@ export default (self) => [
     tableItem: {},
   },
   {
+    title: 'File Nme',
+    name: 'fileName',
+    tableItem: {},
+  },
+  {
+    title: 'Format',
+    name: 'format',
+    tableItem: {},
+  },
+  {
+    title: 'File Size',
+    name: 'fileSize',
+    tableItem: {},
+  },
+  {
     title: 'Status',
     name: 'status',
     tableItem: {},
+    dict: [{ code: 'None', codeName: 'None' },
+    { code: 'Processing', codeName: 'Processing' },
+    { code: 'Success', codeName: 'Success' },
+    { code: 'Failed', codeName: 'Failed' }],
+    searchItem: {
+      type: 'select',
+      group: 'abc'
+    }
   },
   {
     title: 'Error',
     name: 'error',
-    tableItem: {},
+    tableItem: {
+      render: (text, record) => (
+        <Tooltip title={text}>
+          <span>{text.split(' ')[0]}</span>
+        </Tooltip>
+      )
+    },
   },
   {
     title: 'Action',

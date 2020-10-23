@@ -6,3 +6,6 @@ dotnet ef migrations add AlterFileJobs
 dotnet ef migrations add AlterFileJobs2
 dotnet ef migrations add AddFileDeal
 dotnet ef migrations add AddFileImport
+dotnet ef migrations add AddMember --context MemberDbContext
+dotnet ef migrations add AddUserIdToUploadLog --context CloudSpeedDbContext
+dotnet ef migrations add AddSizeToFileName --context CloudSpeedDbContext

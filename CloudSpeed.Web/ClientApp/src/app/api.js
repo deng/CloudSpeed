@@ -11,7 +11,7 @@ function getValidFile(fileList) {
 }
 
 export default class Api {
-    uploadPan = (values, editorState) => {
+    uploadPan = (token, values, editorState) => {
         console.warn(values);
         return new Promise((resolve, reject) => {
             const dataFile = getValidFile(values.dataKey.fileList);
@@ -23,6 +23,7 @@ export default class Api {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: token ? `Bearer ${token}` : '',
                 },
                 body: JSON.stringify({
                     alipayKey: values.alipayKey ? getValidFile(values.alipayKey.fileList).response.data : undefined,
@@ -71,6 +72,78 @@ export default class Api {
         return new Promise((resolve, reject) => {
             fetch(`/api/download/${values.cid}`, {
                 method: 'GET',
+            }).then(response => response.json()).then(data => {
+                resolve({ ...data });
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    };
+    checkMember = (address) => {
+        return new Promise((resolve, reject) => {
+            fetch(`/api/member/check`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    address,
+                })
+            }).then(response => response.json()).then(data => {
+                resolve({ ...data });
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    };
+    createMember = (values) => {
+        return new Promise((resolve, reject) => {
+            fetch(`/api/member/create`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    address: values.address,
+                    password: values.password,
+                })
+            }).then(response => response.json()).then(data => {
+                resolve({ ...data });
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    };
+    login = (values) => {
+        return new Promise((resolve, reject) => {
+            fetch(`/api/member/login`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    address: values.address,
+                    password: values.password,
+                })
+            }).then(response => response.json()).then(data => {
+                resolve({ ...data });
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    };
+    fetchFiles = (token, skip, limit) => {
+        return new Promise((resolve, reject) => {
+            fetch(`/api/myfiles`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    skip,
+                    limit,
+                })
             }).then(response => response.json()).then(data => {
                 resolve({ ...data });
             }).catch(error => {

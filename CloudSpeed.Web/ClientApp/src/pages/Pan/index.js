@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
 import { useParams } from "react-router-dom";
-import { message, Modal } from 'antd';
+import { Button, message, Modal } from 'antd';
 import { Form, Input } from 'antd';
+import { Descriptions } from 'antd';
 import { panDownloadUrl } from './../../app/util';
 import Api from './../../app/api';
 
@@ -50,19 +51,20 @@ const Pan = () => {
 
   return (
     <div>
-      <p>File name</p>
-      <p>{pan.fileName}</p>
-      <p>File size</p>
-      <p>{pan.fileSize ? `${pan.fileSize / 1000}KB` : ''}</p>
-      <p>Release time</p>
-      <p>{pan.created ? new Date(pan.created).toLocaleString() : ""}</p>
-      <p>Data cid</p>
-      <p>{pan.dataCid ? pan.dataCid : "Not yet"}</p>
-      <p>Introduction</p>
-      <div dangerouslySetInnerHTML={{ __html: pan.description }} />
-      {pan.secret && <p> <a onClick={() => setValidating(true)}>Download file</a></p>}
-      {!pan.secret  && <p> <a target="_blank" href={`${panDownloadUrl(id)}`}>Download file</a></p>}
-      <p><a href='/'>I want to upload it, too</a></p>
+      <Descriptions bordered>
+        <Descriptions.Item label="File Name" span={3}>{pan.fileName}</Descriptions.Item>
+        <Descriptions.Item label="Mime Type" span={3}>{pan.mimeType}</Descriptions.Item>
+        <Descriptions.Item label="File Size" span={3}>{pan.fileSize}</Descriptions.Item>
+        <Descriptions.Item label="Date" span={3}>{pan.created ? new Date(pan.created).toLocaleString() : ''}</Descriptions.Item>
+        <Descriptions.Item label="Data cid" span={3}>{pan.dataCid ? pan.dataCid : "Not yet"}</Descriptions.Item>
+        <Descriptions.Item label="Introduction" span={3}> <div dangerouslySetInnerHTML={{ __html: pan.description }} /></Descriptions.Item>
+        <Descriptions.Item label="" span={3}>
+          {pan.secret && <p> <Button type="primary" onClick={() => setValidating(true)} htmlType="submit">Download file</Button></p>}
+          {!pan.secret && <p> <a target="_blank" href={`${panDownloadUrl(id)}`}>Download file</a></p>}
+          <p><a href='/'>I want to upload it, too</a></p>
+        </Descriptions.Item>
+      </Descriptions>
+
       <Modal
         visible={validating}
         title="Input extraction code"

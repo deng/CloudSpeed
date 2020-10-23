@@ -12,6 +12,7 @@ using System.IO;
 using CloudSpeed.Powergate;
 using Google.Protobuf;
 using CloudSpeed.Services;
+using CloudSpeed.Settings;
 
 namespace CloudSpeed.BackgroundServices
 {
@@ -21,10 +22,13 @@ namespace CloudSpeed.BackgroundServices
 
         private readonly CloudSpeedManager _cloudSpeedManager;
 
-        public PowergateWorker(ILogger<PowergateWorker> logger, CloudSpeedManager cloudSpeedManager)
+        private readonly UploadSetting _uploadSetting;
+
+        public PowergateWorker(ILogger<PowergateWorker> logger, CloudSpeedManager cloudSpeedManager, UploadSetting uploadSetting)
         {
             _logger = logger;
             _cloudSpeedManager = cloudSpeedManager;
+            _uploadSetting = uploadSetting;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -56,7 +60,7 @@ namespace CloudSpeed.BackgroundServices
                             }
                             foreach (var fileCid in fileCids)
                             {
-                                var path = _cloudSpeedManager.GetStoragePath(fileCid.Id);
+                                var path = _uploadSetting.GetStoragePath(fileCid.Id);
                                 if (File.Exists(path))
                                 {
                                     var cid = string.Empty;

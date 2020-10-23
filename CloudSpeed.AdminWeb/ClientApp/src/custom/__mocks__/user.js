@@ -7,6 +7,17 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
         path: '/dashboard',
       },
       {
+        name: 'Uploads',
+        icon: 'RadarChartOutlined',
+        path: '/uploads',
+        children: [
+          {
+            name: 'Upload Logs',
+            path: '/uploads/list',
+          },
+        ],
+      },
+      {
         name: 'Jobs',
         icon: 'RadarChartOutlined',
         path: '/jobs',
@@ -25,17 +36,6 @@ export default ({ fetchMock, delay, mock, toSuccess, toError }) => {
           {
             name: 'Lotus Deals',
             path: '/deals/list',
-          },
-        ],
-      },
-      {
-        name: 'Imports',
-        icon: 'RadarChartOutlined',
-        path: '/imports',
-        children: [
-          {
-            name: 'Logs',
-            path: '/imports/list',
           },
         ],
       },

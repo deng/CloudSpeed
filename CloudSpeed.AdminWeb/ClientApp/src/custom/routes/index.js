@@ -7,6 +7,7 @@ import Page500 from './Pages/500';
 import Dashboard from './Dashboard';
 import Jobs from './Jobs';
 import Deals from './Deals';
+import Uploads from './Uploads';
 import Imports from './Imports';
 
 /**
@@ -28,6 +29,7 @@ const routesConfig = app => [
       Dashboard(app),
       Jobs(app),
       Deals(app),
+      Uploads(app),
       Imports(app),
       Page403(),
       Page500(),
