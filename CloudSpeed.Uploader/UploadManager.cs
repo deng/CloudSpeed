@@ -90,6 +90,10 @@ namespace CloudSpeed.Uploader
             {
                 _logger.LogInformation("file too large {source}", source);
             }
+            else if (_uploadSetting.MinFileSize > 0 && sourceSize < _uploadSetting.MinFileSize)
+            {
+                _logger.LogInformation("file too small {source}", source);
+            }
             else
             {
                 var md5 = _cloudSpeedManager.GetMD5HashFromFile(source);
@@ -101,38 +105,6 @@ namespace CloudSpeed.Uploader
                 var hasFileMd5 = await _cloudSpeedManager.CheckFileMd5ById(md5);
                 if (!hasFileMd5)
                 {
-                    var limitUploading = _uploadSetting.LimitUploading;
-                    if (limitUploading == 0)
-                    {
-                        limitUploading = 10;
-                    }
-
-                    while (!stoppingToken.IsCancellationRequested)
-                    {
-                        var fileCids = await _cloudSpeedManager.GetFileCids(FileCidStatus.None, 0, limitUploading);
-                        if (fileCids.Count() == limitUploading)
-                        {
-                            _logger.LogInformation("file upload delay 10s for limit {limit} cids", limitUploading);
-                            await Task.Delay(10000, stoppingToken);
-                            continue;
-                        }
-                        var fileDeals = await _cloudSpeedManager.GetFileDeals(FileDealStatus.Processing, 0, limitUploading);
-                        if (fileDeals.Count() == limitUploading)
-                        {
-                            _logger.LogInformation("file upload delay 10s for limit {limit} deals", limitUploading);
-                            await Task.Delay(10000, stoppingToken);
-                            continue;
-                        }
-                        var fileJobs = await _cloudSpeedManager.GetFileJobs(FileJobStatus.Processing, 0, limitUploading);
-                        if (fileJobs.Count() == limitUploading)
-                        {
-                            _logger.LogInformation("file upload delay 10s for limit {limit} jobs", limitUploading);
-                            await Task.Delay(10000, stoppingToken);
-                            continue;
-                        }
-                        break;
-                    }
-
                     var dataKey = SequentialGuid.NewGuidString();
                     try
                     {

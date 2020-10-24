@@ -5,7 +5,7 @@ namespace CloudSpeed.Sdk
     /*
     [{\"path\":\"${path}\",\"isCAR\":false}]
     */
-    public class ClientImportRequest
+    public class FileRef
     {
         [JsonProperty("path")]
         public string Path { get; set; }

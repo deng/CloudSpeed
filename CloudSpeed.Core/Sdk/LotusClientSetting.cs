@@ -45,6 +45,12 @@ namespace CloudSpeed.Sdk
 
         public decimal AskingPrice { get; set; }
 
+        public string Api { get; set; }
+
+        public string Token { get; set; }
+
+        public int Timeout { get; set; } = -1;
+
         public long SectorSizeInBytes
         {
             get

@@ -20,9 +20,9 @@ namespace CloudSpeed.Sdk
         /*
         {"jsonrpc":"2.0","result":{"Root":{"/":"bafyaa6qsgafcmalqudsaeicm4xetinw2pixca4uelcsjo5wlknw3npuqmlfsgdd76vk6x42mnijaagelucbyabasgafcmalqudsaeiajit4kxcy4j23qxmqso275umu7o4jpwwism262aoyrmeyqrdgizujaaght23voaaikcqeaegeaudu6abjaqcaibaaeecakb2paae"},"ImportID":8},"id":0}
         */
-        public async Task<ResponseBase<ClientImportResponse>> ClientImport(ClientImportRequest model)
+        public async Task<ResponseBase<ClientImportResponse>> ClientImport(FileRef model)
         {
-            var rb = new RequestBase<ClientImportRequest>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport", Timeout = 0 };
+            var rb = new RequestBase<FileRef>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport", Timeout = 0 };
             return await ExecuteAsync<ClientImportResponse>(rb);
         }
 
@@ -98,6 +98,18 @@ namespace CloudSpeed.Sdk
         {
             var rb = new RequestBase<Cid>() { Method = "Filecoin.ClientFindData", ParamsData = new[] { model.Root, model.Piece } };
             return await ExecuteAsync<QueryOffer[]>(rb);
+        }
+
+        public async Task<ResponseBase<CommPRet>> ClientCalcCommP(string inpath)
+        {
+            var rb = new RequestBase<string>() { ParamsData = new[] { inpath }, Method = "Filecoin.ClientCalcCommP", Timeout = 0 };
+            return await ExecuteAsync<CommPRet>(rb);
+        }
+
+        public async Task<ResponseBase> ClientGenCar(FileRef model, string outpath)
+        {
+            var rb = new RequestBase<object>() { ParamsData = new object[] { model, outpath }, Method = "Filecoin.ClientGenCar", Timeout = 0 };
+            return await ExecuteAsync(rb);
         }
 
         private async Task<ResponseBase<T>> ExecuteAsync<T>(RequestBase model)
