@@ -37,6 +37,7 @@ namespace CloudSpeed.BackgroundServices
             StorageDealStatus.StorageDealEnsureProviderFunds,
             StorageDealStatus.StorageDealValidating,
             StorageDealStatus.StorageDealFundsEnsured,
+            StorageDealStatus.StorageDealStaged
         };
 
         private readonly ConcurrentDictionary<string, DateTime> _processingDealIds = new ConcurrentDictionary<string, DateTime>();

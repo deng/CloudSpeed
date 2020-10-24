@@ -11,6 +11,10 @@ using System.Globalization;
 using System.Threading;
 using CloudSpeed.Entities;
 using System.IO.Compression;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity;
+using CloudSpeed.Identity;
 
 namespace CloudSpeed.Uploader
 {
@@ -19,12 +23,18 @@ namespace CloudSpeed.Uploader
         private readonly ILogger _logger;
         private readonly CloudSpeedManager _cloudSpeedManager;
         private readonly UploadSetting _uploadSetting;
+        private readonly IConfiguration _configuration;
+        private readonly UserManager<Member> _memberManager;
 
-        public UploadManager(ILoggerFactory loggerFactory, CloudSpeedManager cloudSpeedManager, UploadSetting uploadSetting)
+        public UploadManager(ILoggerFactory loggerFactory,
+            CloudSpeedManager cloudSpeedManager, UploadSetting uploadSetting, IConfiguration configuration,
+            UserManager<Member> memberManager)
         {
             _logger = loggerFactory.CreateLogger<UploadManager>();
             _cloudSpeedManager = cloudSpeedManager;
             _uploadSetting = uploadSetting;
+            _configuration = configuration;
+            _memberManager = memberManager;
         }
 
         public async Task UploadAll(string path, bool zip, CancellationToken stoppingToken)
@@ -126,12 +136,25 @@ namespace CloudSpeed.Uploader
                     var dataKey = SequentialGuid.NewGuidString();
                     try
                     {
+                        var editSetting = _configuration.GetSection("EditSetting").Get<IDictionary<string, string>>();
                         var target = _uploadSetting.GetStoragePath(dataKey);
                         File.Copy(source, target);
                         await _cloudSpeedManager.CreateFileMd5(md5, dataKey);
                         await _cloudSpeedManager.CreateFileName(dataKey, sourceInfo.Name, sourceSize);
-                        //TODO:
-                        await _cloudSpeedManager.CreateUploadLog(null, new PanePostRequest { DataKey = dataKey });
+                        var format = sourceInfo.Name.GetMimeType();
+                        if (!editSetting.ContainsKey(format))
+                        {
+                            _logger.LogError(0, "file format not found at edit setting {format}", format);
+                            return;
+                        }
+                        var userName = editSetting[format].ToLower();
+                        var member = await _memberManager.FindByNameAsync(userName);
+                        if (member == null)
+                        {
+                            _logger.LogError(0, "member not found {userName}", userName);
+                            return;
+                        }
+                        await _cloudSpeedManager.CreateUploadLog(member.Id, new PanePostRequest { DataKey = dataKey });
                         _logger.LogInformation("file upload successfully {dataKey} - {source}", dataKey, source);
                     }
                     catch (System.Exception ex)
