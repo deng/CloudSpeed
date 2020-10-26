@@ -206,7 +206,7 @@ namespace CloudSpeed.BackgroundServices
                                     var cid = string.Empty;
                                     try
                                     {
-                                        var result = await lotusClient.ClientImport(new ClientImportRequest
+                                        var result = await lotusClient.ClientImport(new FileRef
                                         {
                                             Path = path,
                                             IsCAR = false
@@ -224,7 +224,7 @@ namespace CloudSpeed.BackgroundServices
                                     }
                                     if (!string.IsNullOrEmpty(cid))
                                     {
-                                        var fdId = await _cloudSpeedManager.CreateFileDeal(cid);
+                                        var fdId = await _cloudSpeedManager.CreateFileDeal(cid, null, 0);
                                     }
                                 }
                             }

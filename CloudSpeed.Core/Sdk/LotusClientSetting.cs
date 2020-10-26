@@ -8,11 +8,7 @@ namespace CloudSpeed.Sdk
 {
     public class LotusClientSetting
     {
-        public string LotusApi { get; set; }
-
-        public string LotusToken { get; set; }
-
-        public int LotusTimeout { get; set; } = -1;
+        public LotusApi Api { get; set; }
 
         public LotusMinerSetting[] Miners { get; set; }
 
@@ -45,11 +41,7 @@ namespace CloudSpeed.Sdk
 
         public decimal AskingPrice { get; set; }
 
-        public string Api { get; set; }
-
-        public string Token { get; set; }
-
-        public int Timeout { get; set; } = -1;
+        public LotusApi Api { get; set; }
 
         public long SectorSizeInBytes
         {

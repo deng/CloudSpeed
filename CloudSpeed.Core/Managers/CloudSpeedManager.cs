@@ -293,14 +293,16 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task<string> CreateFileDeal(string cid)
+        public async Task<string> CreateFileDeal(string cid, string pieceCid, int pieceSize)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
                 var entity = new FileDeal()
                 {
-                    Cid = cid
+                    Cid = cid,
+                    PieceCid = pieceCid,
+                    PieceSize = pieceSize
                 };
                 await repository.CreateFileDeal(entity);
                 await repository.Commit();

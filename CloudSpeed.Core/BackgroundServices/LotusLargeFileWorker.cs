@@ -76,8 +76,8 @@ namespace CloudSpeed.BackgroundServices
                             _logger.LogInformation("found file {count} deals", fileDeals.Count());
                             foreach (var fileDeal in fileDeals)
                             {
-                                _logger.LogInformation("client start deal  {datacid}(dealid) {dealid}(datacid)", fileDeal.Id, fileDeal.Cid);
-                                await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, stoppingToken);
+                                _logger.LogInformation("client start deal  {datacid}(dealid) {dealid}(datacid) {pieceCid}(pieceCid) {pieceSize}(pieceSize)", fileDeal.Id, fileDeal.Cid, fileDeal.PieceCid, fileDeal.PieceSize);
+                                await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, fileDeal.PieceCid, fileDeal.PieceSize, stoppingToken);
                             }
                             skip += limit;
                         }
@@ -206,7 +206,7 @@ namespace CloudSpeed.BackgroundServices
                                     var cid = string.Empty;
                                     try
                                     {
-                                        var result = await lotusClient.ClientImport(new ClientImportRequest
+                                        var result = await lotusClient.ClientImport(new FileRef
                                         {
                                             Path = path,
                                             IsCAR = false
@@ -224,7 +224,14 @@ namespace CloudSpeed.BackgroundServices
                                     }
                                     if (!string.IsNullOrEmpty(cid))
                                     {
-                                        var fdId = await _cloudSpeedManager.CreateFileDeal(cid);
+                                        var carPath = path + ".car";
+                                        await lotusClient.ClientGenCar(new FileRef
+                                        {
+                                            Path = path,
+                                            IsCAR = false
+                                        }, carPath);
+                                        var commP = await lotusClient.ClientCalcCommP(carPath);
+                                        var fdId = await _cloudSpeedManager.CreateFileDeal(cid, commP.Result.Root.Value, commP.Result.Size);
                                     }
                                 }
                             }
@@ -240,7 +247,7 @@ namespace CloudSpeed.BackgroundServices
             }
         }
 
-        private async Task ClientStartDeal(LotusClient lotusClient, string fdId, string cid, CancellationToken stoppingToken)
+        private async Task ClientStartDeal(LotusClient lotusClient, string fdId, string cid, string pieceCid, int pieceSize, CancellationToken stoppingToken)
         {
             try
             {
@@ -346,10 +353,14 @@ namespace CloudSpeed.BackgroundServices
                     Price = askingPrice.ToString(), //Price per GiB
                     Duration = minDealDuration
                 };
-                var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, dealRequest);
+                var dealParams = await CreateTTManualClientStartDealParams(lotusClient, dealRequest, new CommPRet
+                {
+                    Root = new Cid { Value = pieceCid },
+                    Size = pieceSize
+                });
                 if (dealParams == null)
                 {
-                    _logger.LogError(0, string.Format("CreateTTGraphsyncClientStartDealParams empty."));
+                    _logger.LogError(0, string.Format("CreateTTManualClientStartDealParams empty."));
                     return;
                 }
                 _logger.LogInformation("lotus client start dealing: {dataCid} (datacid) {miner} {price} {duration}", cid, dealRequest.Miner, dealRequest.Price, dealRequest.Duration);
@@ -359,6 +370,7 @@ namespace CloudSpeed.BackgroundServices
                     var did = dealCid.Result.Value;
                     _logger.LogInformation("lotus client start deal result: {datacid}(datacid) - {dealcid} (dealcid) {price} {duration}", cid, did, dealRequest.Price, dealRequest.Duration);
                     await _cloudSpeedManager.UpdateFileDeal(fdId, miner.Miner, did, FileDealStatus.Processing);
+                    await lotusClient.MinerClients[miner.Miner].MarketImportDealData(new Cid { Value = did }, fileFullPath);
                     _processingDealIds.AddOrUpdate(did, key => DateTime.Now, (key, oldDt) => DateTime.Now);
                     _processingDealIdBytes.AddOrUpdate(did, key => fileSize, (key, oldDt) => fileSize);
                 }
@@ -373,12 +385,14 @@ namespace CloudSpeed.BackgroundServices
             }
         }
 
-        private async Task<ClientStartDealParams> CreateTTGraphsyncClientStartDealParams(LotusClient lotusClient, ClientStartDealRequest model)
+        private async Task<ClientStartDealParams> CreateTTManualClientStartDealParams(LotusClient lotusClient, ClientStartDealRequest model, CommPRet commPRet)
         {
             var dataRef = new TransferDataRef()
             {
-                TransferType = TransferType.graphsync.ToString(),
+                TransferType = TransferType.manual.ToString(),
                 Root = new Cid() { Value = model.DataCid },
+                PieceCid = commPRet.Root,
+                PieceSize = commPRet.Size
             };
 
             var walletAddress = await lotusClient.WalletDefaultAddress();

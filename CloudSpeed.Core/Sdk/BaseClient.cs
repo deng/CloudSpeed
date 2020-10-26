@@ -9,20 +9,22 @@ namespace CloudSpeed.Sdk
     public class BaseClient
     {
         private readonly ILogger _logger;
-        private readonly LotusClientSetting m_LotusClientSetting;
+        private readonly LotusApi _api;
 
-        public BaseClient(ILogger<MinerClient> logger, LotusClientSetting lotusClientSetting)
+        protected ILogger Logger { get { return _logger; } }
+        
+        public BaseClient(ILogger logger, LotusApi api)
         {
             _logger = logger;
-            m_LotusClientSetting = lotusClientSetting;
+            _api = api;
         }
 
-        private async Task<ResponseBase<T>> ExecuteAsync<T>(RequestBase model)
+        protected async Task<ResponseBase<T>> ExecuteAsync<T>(RequestBase model)
         {
-            var client = new RestClient(m_LotusClientSetting.LotusApi);
-            client.Timeout = model.Timeout ?? m_LotusClientSetting.LotusTimeout;
+            var client = new RestClient(_api.Api);
+            client.Timeout = model.Timeout ?? _api.Timeout;
             var request = new RestRequest(Method.POST);
-            request.AddHeader("Authorization", "Bearer " + m_LotusClientSetting.LotusToken);
+            request.AddHeader("Authorization", "Bearer " + _api.Token);
             request.AddHeader("Content-Type", "application/json");
             request.AddParameter("application/json", JsonConvert.SerializeObject(model), ParameterType.RequestBody);
             var response = await client.ExecuteAsync(request);
@@ -56,7 +58,7 @@ namespace CloudSpeed.Sdk
             return data;
         }
 
-        private async Task<ResponseBase> ExecuteAsync(RequestBase model)
+        protected async Task<ResponseBase> ExecuteAsync(RequestBase model)
         {
             return await ExecuteAsync<string>(model);
         }

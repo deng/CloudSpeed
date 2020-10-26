@@ -23,7 +23,7 @@ namespace CloudSpeed.Web
             services.Configure<LotusClientSetting>(configuration.GetSection(nameof(LotusClientSetting)),
                 (serviceProvider, setting) =>
                 {
-                    if (setting == null || string.IsNullOrEmpty(setting.LotusApi) || string.IsNullOrEmpty(setting.LotusToken))
+                    if (setting == null || setting.Api == null)
                         throw new ApplicationException("please setup /LotusClientSetting at appsettings.json");
 
                     return setting;
