@@ -16,7 +16,7 @@ namespace CloudSpeed.Sdk
 
         public async Task<ResponseBase> MarketImportDealData(Cid cid, string path)
         {
-            var rb = new RequestBase<object>() { ParamsData = new object[] { cid, path }, Method = "Filecoin.MarketImportDealData", Timeout = 0 };
+            var rb = new RequestBase<object>() { ParamsData = new object[] { cid, path }, Method = "Filecoin.MarketImportDealData", Timeout = -1 };
             return await ExecuteAsync(rb);
         }
     }

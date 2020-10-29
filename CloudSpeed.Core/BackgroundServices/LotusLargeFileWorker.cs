@@ -76,6 +76,27 @@ namespace CloudSpeed.BackgroundServices
                             _logger.LogInformation("found file {count} deals", fileDeals.Count());
                             foreach (var fileDeal in fileDeals)
                             {
+                                if (string.IsNullOrEmpty(fileDeal.PieceCid))
+                                {
+                                    var fileCid = await _cloudSpeedManager.GetFileCidByCid(fileDeal.Cid);
+                                    var fileFullPath = _uploadSetting.GetStoragePath(fileCid.Id);
+                                    var carPath = fileFullPath + ".car";
+                                    _logger.LogInformation("Lotus ClientGenCar: {fileFullPath}", fileFullPath);
+                                    var genCar = await lotusClient.ClientGenCar(new FileRef
+                                    {
+                                        Path = fileFullPath,
+                                        IsCAR = false
+                                    }, carPath);
+                                    if (!genCar.Success)
+                                        continue;
+                                    _logger.LogInformation("Lotus ClientCalcCommP: {carPath}", carPath);
+                                    var commP = await lotusClient.ClientCalcCommP(carPath);
+                                    if (!commP.Success)
+                                        continue;
+                                    fileDeal.PieceCid = commP.Result.Root.Value;
+                                    fileDeal.PieceSize = commP.Result.Size;
+                                    await _cloudSpeedManager.UpdateFileDeal(fileDeal.Id, fileDeal.PieceCid, fileDeal.PieceSize);
+                                }
                                 _logger.LogInformation("client start deal  {datacid}(dealid) {dealid}(datacid) {pieceCid}(pieceCid) {pieceSize}(pieceSize)", fileDeal.Id, fileDeal.Cid, fileDeal.PieceCid, fileDeal.PieceSize);
                                 await ClientStartDeal(lotusClient, fileDeal.Id, fileDeal.Cid, fileDeal.PieceCid, fileDeal.PieceSize, stoppingToken);
                             }
@@ -203,9 +224,21 @@ namespace CloudSpeed.BackgroundServices
                                 var path = _uploadSetting.GetStoragePath(fileCid.Id);
                                 if (File.Exists(path))
                                 {
+                                    var fileSize = new FileInfo(path).Length;
+                                    if (fileSize >= _uploadSetting.MaxFileSize && _uploadSetting.MaxFileSize > 0)
+                                    {
+                                        _logger.LogWarning("Lotus ClientImport fail : file size should be less that {0} < {1} {2}", fileSize, _uploadSetting.MaxFileSize, path);
+                                        continue;
+                                    }
+                                    if (fileSize <= _uploadSetting.MinFileSize)
+                                    {
+                                        _logger.LogWarning("Lotus ClientImport fail : file size should be more that {0} < {1} {2}", fileSize, _uploadSetting.MinFileSize, path);
+                                        continue;
+                                    }
                                     var cid = string.Empty;
                                     try
                                     {
+                                        _logger.LogInformation("Lotus ClientImport: {cid}", cid);
                                         var result = await lotusClient.ClientImport(new FileRef
                                         {
                                             Path = path,
@@ -225,12 +258,18 @@ namespace CloudSpeed.BackgroundServices
                                     if (!string.IsNullOrEmpty(cid))
                                     {
                                         var carPath = path + ".car";
-                                        await lotusClient.ClientGenCar(new FileRef
+                                        _logger.LogInformation("Lotus ClientGenCar: {path}", path);
+                                        var genCar = await lotusClient.ClientGenCar(new FileRef
                                         {
                                             Path = path,
                                             IsCAR = false
                                         }, carPath);
+                                        _logger.LogInformation("Lotus ClientCalcCommP: {carPath}", carPath);
+                                        if (!genCar.Success)
+                                            continue;
                                         var commP = await lotusClient.ClientCalcCommP(carPath);
+                                        if (!commP.Success)
+                                            continue;
                                         var fdId = await _cloudSpeedManager.CreateFileDeal(cid, commP.Result.Root.Value, commP.Result.Size);
                                     }
                                 }
@@ -247,7 +286,7 @@ namespace CloudSpeed.BackgroundServices
             }
         }
 
-        private async Task ClientStartDeal(LotusClient lotusClient, string fdId, string cid, string pieceCid, int pieceSize, CancellationToken stoppingToken)
+        private async Task ClientStartDeal(LotusClient lotusClient, string fdId, string cid, string pieceCid, long pieceSize, CancellationToken stoppingToken)
         {
             try
             {
@@ -370,13 +409,26 @@ namespace CloudSpeed.BackgroundServices
                     var did = dealCid.Result.Value;
                     _logger.LogInformation("lotus client start deal result: {datacid}(datacid) - {dealcid} (dealcid) {price} {duration}", cid, did, dealRequest.Price, dealRequest.Duration);
                     await _cloudSpeedManager.UpdateFileDeal(fdId, miner.Miner, did, FileDealStatus.Processing);
-                    await lotusClient.MinerClients[miner.Miner].MarketImportDealData(new Cid { Value = did }, fileFullPath);
+                    var carPath = fileFullPath + ".car";
+                    _logger.LogInformation("MarketImportDealData : {miner} - {dealcid} (dealcid) {carPath}", miner.Miner, did, carPath);
+                    while (true)
+                    {
+                        await Task.Delay(5000, stoppingToken);
+                        var importResult = await lotusClient.MinerClients[miner.Miner].MarketImportDealData(new Cid { Value = did }, carPath);
+                        if (importResult.Success)
+                        {
+                            _logger.LogInformation("market import deal data success: {miner} - {dealcid} (dealcid) {carPath}", miner.Miner, did, carPath);
+                            break;
+                        }
+                        _logger.LogWarning("market import deal data fail: {miner} - {dealcid} (dealcid) {carPath}", miner.Miner, did, carPath);
+                    }
                     _processingDealIds.AddOrUpdate(did, key => DateTime.Now, (key, oldDt) => DateTime.Now);
                     _processingDealIdBytes.AddOrUpdate(did, key => fileSize, (key, oldDt) => fileSize);
                 }
                 else
                 {
-                    _logger.LogError(0, "lotus client start deal failed: {datacid}(datacid) - (errorMessage)", cid, dealCid.Error.Message);
+                    await _cloudSpeedManager.UpdateFileDeal(fdId, FileDealStatus.Failed, dealCid.Error.Message);
+                    _logger.LogError(0, "lotus client start deal failed: {datacid}(datacid) - {errorMessage}", cid, dealCid.Error.Message);
                 }
             }
             catch (System.Exception ex)

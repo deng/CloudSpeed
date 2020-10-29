@@ -271,6 +271,17 @@ namespace CloudSpeed.Repositories
             }
         }
 
+        public async Task UpdateFileDeal(string id, string pieceCid, long pieceSize)
+        {
+            var entity = await DbContext.FileDeals.FirstOrDefaultAsync(a => a.Id == id);
+            if (entity != null)
+            {
+                entity.PieceCid = pieceCid;
+                entity.PieceSize = pieceSize;
+                entity.Updated = DateTime.Now;
+            }
+        }
+
         public async Task UpdateFileDeal(string id, FileDealStatus status, string error)
         {
             var entity = await DbContext.FileDeals.FirstOrDefaultAsync(a => a.Id == id);

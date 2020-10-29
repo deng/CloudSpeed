@@ -9,9 +9,9 @@ namespace CloudSpeed.Settings
         public string RewardPath { get; set; }
 
         public long MinFileSize { get; set; }
-        
-        public long MaxFileSize { get; set; }
 
+        public long MaxFileSize { get; set; }
+        
         public string GetStoragePath(string key)
         {
             if (Storages.Length == 0) return string.Empty;
@@ -21,6 +21,8 @@ namespace CloudSpeed.Settings
                 if (File.Exists(fullPath))
                     return fullPath;
             }
+            if (Storages.Length > 0)
+                return Path.Combine(Storages[0], key);
             return string.Empty;
         }
 

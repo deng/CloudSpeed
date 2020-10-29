@@ -81,6 +81,8 @@ namespace CloudSpeed.Repositories
 
         Task UpdateFileDeal(string id, FileDealStatus status, string error);
 
+        Task UpdateFileDeal(string id, string pieceCid, long pieceSize);
+
         Task<FileDeal> GetFileDealByCid(string cid);
 
         Task CreateFileImport(FileImport entity);

@@ -36,7 +36,7 @@ namespace CloudSpeed.Sdk
         */
         public async Task<ResponseBase<ClientImportResponse>> ClientImport(FileRef model)
         {
-            var rb = new RequestBase<FileRef>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport", Timeout = 0 };
+            var rb = new RequestBase<FileRef>() { ParamsData = new[] { model }, Method = "Filecoin.ClientImport", Timeout = -1 };
             return await ExecuteAsync<ClientImportResponse>(rb);
         }
 
@@ -86,7 +86,7 @@ namespace CloudSpeed.Sdk
 
         public async Task<ResponseBase<Cid>> ClientStartDeal(ClientStartDealParams model)
         {
-            var rb = new RequestBase<ClientStartDealParams>() { Method = "Filecoin.ClientStartDeal", ParamsData = new[] { model } };
+            var rb = new RequestBase<ClientStartDealParams>() { Method = "Filecoin.ClientStartDeal", ParamsData = new[] { model }, Timeout = -1 };
             return await ExecuteAsync<Cid>(rb);
         }
 
@@ -116,13 +116,13 @@ namespace CloudSpeed.Sdk
 
         public async Task<ResponseBase<CommPRet>> ClientCalcCommP(string inpath)
         {
-            var rb = new RequestBase<string>() { ParamsData = new[] { inpath }, Method = "Filecoin.ClientCalcCommP", Timeout = 0 };
+            var rb = new RequestBase<string>() { ParamsData = new[] { inpath }, Method = "Filecoin.ClientCalcCommP", Timeout = -1 };
             return await ExecuteAsync<CommPRet>(rb);
         }
 
         public async Task<ResponseBase> ClientGenCar(FileRef model, string outpath)
         {
-            var rb = new RequestBase<object>() { ParamsData = new object[] { model, outpath }, Method = "Filecoin.ClientGenCar", Timeout = 0 };
+            var rb = new RequestBase<object>() { ParamsData = new object[] { model, outpath }, Method = "Filecoin.ClientGenCar", Timeout = -1 };
             return await ExecuteAsync(rb);
         }
     }

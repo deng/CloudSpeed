@@ -84,7 +84,7 @@ export default (self) => [
     tableItem: {
       render: (text, record) => (
         <Tooltip title={text}>
-          <span>{text.split(' ')[0]}</span>
+          <span>{text && text.split(' ')[0]}</span>
         </Tooltip>
       )
     },

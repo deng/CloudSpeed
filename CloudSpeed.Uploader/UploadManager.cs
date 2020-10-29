@@ -110,9 +110,6 @@ namespace CloudSpeed.Uploader
                     {
                         var editSetting = _configuration.GetSection("EditSetting").Get<IDictionary<string, string>>();
                         var target = _uploadSetting.GetStoragePath(dataKey);
-                        File.Copy(source, target);
-                        await _cloudSpeedManager.CreateFileMd5(md5, dataKey);
-                        await _cloudSpeedManager.CreateFileName(dataKey, sourceInfo.Name, sourceSize);
                         var format = sourceInfo.Name.GetMimeType();
                         if (!editSetting.ContainsKey(format))
                         {
@@ -126,6 +123,9 @@ namespace CloudSpeed.Uploader
                             _logger.LogError(0, "member not found {userName}", userName);
                             return;
                         }
+                        File.Copy(source, target);
+                        await _cloudSpeedManager.CreateFileMd5(md5, dataKey);
+                        await _cloudSpeedManager.CreateFileName(dataKey, sourceInfo.Name, sourceSize);
                         await _cloudSpeedManager.CreateUploadLog(member.Id, new PanePostRequest { DataKey = dataKey });
                         _logger.LogInformation("file upload successfully {dataKey} - {source}", dataKey, source);
                     }

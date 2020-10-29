@@ -10,6 +10,6 @@ namespace CloudSpeed.Sdk
         public Cid Root { get; set; }
 
         [JsonProperty("Size")]
-        public int Size { get; set; }
+        public long Size { get; set; }
     }
 }
