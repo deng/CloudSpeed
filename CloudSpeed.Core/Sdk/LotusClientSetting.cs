@@ -25,9 +25,9 @@ namespace CloudSpeed.Sdk
             var sectorSize = string.Empty;
             var orderedMiners = Miners.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
             if (orderedMiners.Length > 0)
-                return orderedMiners[RandomService.Next(orderedMiners.Length - 1)];
+                return orderedMiners[RandomService.Next(0, orderedMiners.Length)];
             else
-                return Miners.OrderByDescending(m => m.SectorSizeInBytes).First();
+                return Miners[RandomService.Next(0, Miners.Length)];
         }
 
 
