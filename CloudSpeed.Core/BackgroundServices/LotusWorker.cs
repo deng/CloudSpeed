@@ -290,7 +290,7 @@ namespace CloudSpeed.BackgroundServices
                 }
                 _logger.LogInformation("query file length: {path}", fileFullPath);
                 var fileSize = new FileInfo(fileFullPath).Length;
-                var miner = _lotusClientSetting.GetMinerByFileSize(fileSize);
+                var miner = _lotusClientSetting.GetMinerByFileSize(fileSize, true);
                 if (miner == null)
                 {
                     _logger.LogError(0, string.Format("can't found any miner for :{0} {1}.", cid, fileSize));

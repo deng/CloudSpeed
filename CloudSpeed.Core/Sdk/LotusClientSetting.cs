@@ -18,19 +18,18 @@ namespace CloudSpeed.Sdk
 
         public bool Enabled { get; set; }
 
-        public LotusMinerSetting GetMinerByFileSize(long size)
+        public LotusMinerSetting GetMinerByFileSize(long size, bool online)
         {
             if (Miners == null || Miners.Length == 0)
                 return null;
             var sectorSize = string.Empty;
-            var orderedMiners = Miners.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
+            var filterMiner = Miners.Where(m => m.Online == online).ToArray();
+            var orderedMiners = filterMiner.Where(a => a.SectorSizeInBytes >= size).OrderBy(m => m.SectorSizeInBytes).ToArray();
             if (orderedMiners.Length > 0)
                 return orderedMiners[RandomService.Next(0, orderedMiners.Length)];
             else
-                return Miners[RandomService.Next(0, Miners.Length)];
+                return filterMiner[RandomService.Next(0, filterMiner.Length)];
         }
-
-
     }
 
     public class LotusMinerSetting
@@ -42,6 +41,8 @@ namespace CloudSpeed.Sdk
         public decimal AskingPrice { get; set; }
 
         public LotusApi Api { get; set; }
+        
+        public bool Online { get; set; }
 
         public long SectorSizeInBytes
         {
