@@ -16,6 +16,12 @@ namespace CloudSpeed.Entities
         [StringLength(StringLengthConstants.StringLengthCid)]
         public string Cid { get; set; }
 
+        [Column("deal_size")]
+        public long DealSize { get; set; }
+
+        [Column("payload_size")]
+        public long PayloadSize { get; set; }
+
         [Column("status")]
         public FileCidStatus Status { get; set; } = FileCidStatus.None;
 
@@ -25,7 +31,7 @@ namespace CloudSpeed.Entities
 
         [Column("created")]
         public DateTime Created { get; set; } = DateTime.Now;
-        
+
         [Column("updated")]
         public DateTime Updated { get; set; } = DateTime.Now;
     }

@@ -228,6 +228,16 @@ namespace CloudSpeed.Managers
             }
         }
 
+        public async Task UpdateFileCidDealSize(string id, long dealSize, long payloadSize)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileCidDealSize(id, dealSize, payloadSize);
+                await repository.Commit();
+            }
+        }
+
         public async Task UpdateFileCid(string id, FileCidStatus status, string error = "")
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())

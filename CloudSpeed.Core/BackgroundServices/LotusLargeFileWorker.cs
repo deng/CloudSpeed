@@ -227,12 +227,16 @@ namespace CloudSpeed.BackgroundServices
                                     var fileSize = new FileInfo(path).Length;
                                     if (fileSize >= _uploadSetting.MaxFileSize && _uploadSetting.MaxFileSize > 0)
                                     {
-                                        _logger.LogWarning("Lotus ClientImport fail : file size should be less that {0} < {1} {2}", fileSize, _uploadSetting.MaxFileSize, path);
+                                        var error = $"file size should be less that {fileSize} < {_uploadSetting.MaxFileSize} ";
+                                        await _cloudSpeedManager.UpdateFileCid(fileCid.Id, FileCidStatus.Failed, error);
+                                        _logger.LogWarning("Lotus ClientImport fail : {0} {1}", error, path);
                                         continue;
                                     }
                                     if (fileSize <= _uploadSetting.MinFileSize)
                                     {
-                                        _logger.LogWarning("Lotus ClientImport fail : file size should be more that {0} < {1} {2}", fileSize, _uploadSetting.MinFileSize, path);
+                                        var error = $"file size should be more that {fileSize} < {_uploadSetting.MinFileSize} ";
+                                        await _cloudSpeedManager.UpdateFileCid(fileCid.Id, FileCidStatus.Failed, error);
+                                        _logger.LogWarning("Lotus ClientImport fail : {0} {1}", error, path);
                                         continue;
                                     }
                                     var cid = string.Empty;
@@ -249,6 +253,14 @@ namespace CloudSpeed.BackgroundServices
                                             cid = result.Result.Root.Value;
                                             await _cloudSpeedManager.UpdateFileCid(fileCid.Id, cid, FileCidStatus.Success);
                                             _logger.LogInformation("Lotus ClientImport: {cid}", cid);
+
+                                            _logger.LogWarning(0, string.Format("client deal size ..."));
+                                            var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                                            if (dealSize.Success)
+                                            {
+                                                _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
+                                                await _cloudSpeedManager.UpdateFileCidDealSize(fileCid.Id, dealSize.Result.PieceSize, dealSize.Result.PayloadSize);
+                                            }
                                         }
                                     }
                                     catch (System.Exception ex)
@@ -340,6 +352,13 @@ namespace CloudSpeed.BackgroundServices
                 var online = fileSize < SectorSizeConstants.Bytes512MiB;
 
                 var miner = _lotusClientSetting.GetMinerByFileSize(fileSize, online);
+
+                if (online && miner == null)
+                {
+                    online = !online;
+                    miner = _lotusClientSetting.GetMinerByFileSize(fileSize, online);
+                }
+
                 if (miner == null)
                 {
                     _logger.LogError(0, string.Format("can't found any miner for :{0} {1}.", cid, fileSize));
@@ -370,16 +389,25 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
                         return;
                     }
-
-                    _logger.LogWarning(0, string.Format("client deal size ..."));
-                    var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
-                    if (!dealSize.Success)
+                    if (fileCid.DealSize == 0)
                     {
-                        _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
-                        return;
+                        _logger.LogWarning(0, string.Format("client deal size ..."));
+                        var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                        if (!dealSize.Success)
+                        {
+                            _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
+                            return;
+                        }
+                        _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
+
+                        await _cloudSpeedManager.UpdateFileCidDealSize(fileCid.Id, dealSize.Result.PieceSize, dealSize.Result.PayloadSize);
+
+                        askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
                     }
-                    _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
-                    askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
+                    else
+                    {
+                        askingPrice = (long)((arp * fileCid.DealSize) / (1 << 30)) + 1;
+                    }
 
                     if (askingPrice == 0)
                     {
@@ -396,7 +424,7 @@ namespace CloudSpeed.BackgroundServices
                     Duration = minDealDuration
                 };
 
-                if(online)
+                if (online)
                 {
                     var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, dealRequest);
                     if (dealParams == null)
@@ -460,7 +488,7 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, "lotus client start deal failed: {datacid}(datacid) - {errorMessage}", cid, dealCid.Error.Message);
                     }
                 }
-                
+
             }
             catch (System.Exception ex)
             {

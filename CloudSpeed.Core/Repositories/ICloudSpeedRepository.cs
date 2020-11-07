@@ -43,7 +43,9 @@ namespace CloudSpeed.Repositories
 
         Task<string> GetFileCidByDealId(string dealId);
 
-        Task UpdateFileCid(string Id, string cid, FileCidStatus status);
+        Task UpdateFileCid(string id, string cid, FileCidStatus status);
+
+        Task UpdateFileCidDealSize(string Id, long dealSize, long payloadSize);
 
         Task UpdateFileCid(string Id, FileCidStatus status, string error);
 
