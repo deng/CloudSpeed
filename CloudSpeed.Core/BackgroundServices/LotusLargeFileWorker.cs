@@ -76,7 +76,7 @@ namespace CloudSpeed.BackgroundServices
                             _logger.LogInformation("found file {count} deals", fileDeals.Count());
                             foreach (var fileDeal in fileDeals)
                             {
-                                if (string.IsNullOrEmpty(fileDeal.PieceCid))
+                                //if (string.IsNullOrEmpty(fileDeal.PieceCid))
                                 {
                                     var fileCid = await _cloudSpeedManager.GetFileCidByCid(fileDeal.Cid);
                                     var fileFullPath = _uploadSetting.GetStoragePath(fileCid.Id);
@@ -384,37 +384,47 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, string.Format("can't query ask from :{0} {1}.", minerInfo.Result.PeerId, miner));
                         return;
                     }
-                    if (!decimal.TryParse(ask.Result.Price, out decimal arp))
+                    if (!decimal.TryParse(ask.Result.Price, out askingPrice))
                     {
                         _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
                         return;
                     }
-                    if (fileCid.DealSize == 0)
-                    {
-                        _logger.LogWarning(0, string.Format("client deal size ..."));
-                        var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
-                        if (!dealSize.Success)
-                        {
-                            _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
-                            return;
-                        }
-                        _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
+                }
 
-                        await _cloudSpeedManager.UpdateFileCidDealSize(fileCid.Id, dealSize.Result.PieceSize, dealSize.Result.PayloadSize);
+                if (askingPrice == 0)
+                {
+                    _logger.LogError(0, "asking price should be more than zero.");
+                    return;
+                }
 
-                        askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
-                    }
-                    else
+                if (fileCid.DealSize == 0)
+                {
+                    _logger.LogWarning(0, string.Format("client deal size ..."));
+                    var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                    if (!dealSize.Success)
                     {
-                        askingPrice = (long)((arp * fileCid.DealSize) / (1 << 30)) + 1;
-                    }
-
-                    if (askingPrice == 0)
-                    {
-                        _logger.LogError(0, "asking price should be more than zero.");
+                        _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
                         return;
                     }
+                    _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
+
+                    await _cloudSpeedManager.UpdateFileCidDealSize(fileCid.Id, dealSize.Result.PieceSize, dealSize.Result.PayloadSize);
+
+                    askingPrice = (long)((askingPrice * dealSize.Result.PieceSize) / (1 << 30)) + 1;
                 }
+                else
+                {
+                    askingPrice = (long)((askingPrice * fileCid.DealSize) / (1 << 30)) + 1;
+                }
+
+                if (askingPrice == 0)
+                {
+                    _logger.LogError(0, "asking price should be more than zero.");
+                    return;
+                }
+
+                _logger.LogInformation("will use askingPrice {askingPrice} for miner {miner}", askingPrice, miner.Miner);
+                
                 var minDealDuration = 180 * LotusConstants.EpochsInDay;
                 var dealRequest = new ClientStartDealRequest
                 {
