@@ -11,6 +11,8 @@ namespace CloudSpeed.Sdk
         public string Price { get; set; }
 
         public long Duration { get; set; }
+
+        public decimal AskingPrice { get; set; }
     }
 
     public class ClientStartDealParams

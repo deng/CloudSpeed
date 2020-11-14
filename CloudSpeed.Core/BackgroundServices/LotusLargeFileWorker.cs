@@ -12,6 +12,7 @@ using CloudSpeed.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace CloudSpeed.BackgroundServices
 {
@@ -206,6 +207,23 @@ namespace CloudSpeed.BackgroundServices
             try
             {
                 var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
+                foreach (var miner in lotusClient.MinerClients)
+                {
+                    var minerInfo = await lotusClient.StateMinerInfo(new StateMinerInfoRequest { Miner = miner.Key });
+                    if (minerInfo.Success)
+                    {
+                            _logger.LogInformation("ClientQueryAsk for {miner}", miner.Key);
+                        var ask = await lotusClient.ClientQueryAsk(new ClientQueryAskRequest
+                        {
+                            PeerId = minerInfo.Result.PeerId,
+                            Miner = miner.Key
+                        });
+                        if (ask.Success)
+                        {
+                            _logger.LogInformation("ClientQueryAsk for {miner}: {ask}", miner.Key, JsonConvert.SerializeObject(ask));
+                        }
+                    }
+                }
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     {
@@ -424,7 +442,7 @@ namespace CloudSpeed.BackgroundServices
                 }
 
                 _logger.LogInformation("will use askingPrice {askingPrice} for miner {miner}", askingPrice, miner.Miner);
-                
+
                 var minDealDuration = 180 * LotusConstants.EpochsInDay;
                 var dealRequest = new ClientStartDealRequest
                 {
