@@ -16,6 +16,13 @@ namespace CloudSpeed.Entities
         [StringLength(StringLengthConstants.StringLengthCid)]
         public string Cid { get; set; }
 
+        [Column("piece_cid")]
+        [StringLength(StringLengthConstants.StringLengthCid)]
+        public string PieceCid { get; set; }
+
+        [Column("piece_size")]
+        public long PieceSize { get; set; }
+
         [Column("deal_size")]
         public long DealSize { get; set; }
 

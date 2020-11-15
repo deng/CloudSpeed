@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 
 namespace CloudSpeed.Sdk
 {
@@ -13,6 +14,12 @@ namespace CloudSpeed.Sdk
         public long Duration { get; set; }
 
         public decimal AskingPrice { get; set; }
+
+        public void CalPriceByDealSize(long dealSize)
+        {
+            var askingPrice = (long)((AskingPrice * dealSize) / (1 << 30)) + 1;
+            Price = askingPrice.ToString();
+        }
     }
 
     public class ClientStartDealParams

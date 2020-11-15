@@ -12,3 +12,4 @@ dotnet ef migrations add AddSizeToFileName --context CloudSpeedDbContext
 dotnet ef migrations add AlterFileDealAddPieceInfo --context CloudSpeedDbContext
 dotnet ef migrations add AlterFileDealAlterPieceSizeToLong --context CloudSpeedDbContext
 dotnet ef migrations add AlterFileCidAddDealSize --context CloudSpeedDbContext
+dotnet ef migrations add AlterFileCidAddPieceInfo --context CloudSpeedDbContext

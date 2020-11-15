@@ -47,6 +47,8 @@ namespace CloudSpeed.Repositories
 
         Task UpdateFileCidDealSize(string Id, long dealSize, long payloadSize);
 
+        Task UpdateFileCidCommP(string id, string pieceCid, long pieceSize);
+
         Task UpdateFileCid(string Id, FileCidStatus status, string error);
 
         Task CreateFileMd5(FileMd5 entity);

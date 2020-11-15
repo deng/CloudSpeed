@@ -24,8 +24,10 @@ namespace CloudSpeed.Worker
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddAppServices(config);
-                    services.AddSingleton<CloudSpeed.BackgroundServices.LotusLargeFileWorker>();
-                    services.AddSingleton<CloudSpeed.BackgroundServices.PowergateWorker>();
+
+                    services.AddSingleton<BackgroundServices.DealerService>();
+                    services.AddSingleton<BackgroundServices.LotusWorker>();
+                    services.AddSingleton<BackgroundServices.PowergateWorker>();
                     services.AddHostedService<BackgroundService>(sp =>
                     {
                         var lcs = sp.GetService<LotusClientSetting>();
@@ -35,9 +37,9 @@ namespace CloudSpeed.Worker
                             throw new System.Exception("LotusClientSetting, PowergateSetting only one enabled");
 
                         if (lcs.Enabled)
-                            return sp.GetService<CloudSpeed.BackgroundServices.LotusLargeFileWorker>();
+                            return sp.GetService<BackgroundServices.LotusWorker>();
 
-                        return sp.GetService<CloudSpeed.BackgroundServices.PowergateWorker>();
+                        return sp.GetService<BackgroundServices.PowergateWorker>();
                     });
                     services.BuildGlobalServices();
                 });

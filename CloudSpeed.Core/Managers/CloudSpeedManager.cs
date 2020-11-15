@@ -218,6 +218,16 @@ namespace CloudSpeed.Managers
             }
         }
 
+        public async Task<FileCid> GetFileCid(string id)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                var fileCid = await repository.GetFileCid(id);
+                return fileCid;
+            }
+        }
+
         public async Task UpdateFileCid(string id, string cid, FileCidStatus status)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
@@ -234,6 +244,16 @@ namespace CloudSpeed.Managers
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
                 await repository.UpdateFileCidDealSize(id, dealSize, payloadSize);
+                await repository.Commit();
+            }
+        }
+
+        public async Task UpdateFileCidCommP(string id, string pieceCid, long pieceSize)
+        {
+            using (var scope = GlobalServices.Container.BeginLifetimeScope())
+            {
+                var repository = scope.Resolve<ICloudSpeedRepository>();
+                await repository.UpdateFileCidCommP(id, pieceCid, pieceSize);
                 await repository.Commit();
             }
         }
@@ -303,16 +323,14 @@ namespace CloudSpeed.Managers
             }
         }
 
-        public async Task<string> CreateFileDeal(string cid, string pieceCid, long pieceSize)
+        public async Task<string> CreateFileDeal(string cid)
         {
             using (var scope = GlobalServices.Container.BeginLifetimeScope())
             {
                 var repository = scope.Resolve<ICloudSpeedRepository>();
                 var entity = new FileDeal()
                 {
-                    Cid = cid,
-                    PieceCid = pieceCid,
-                    PieceSize = pieceSize
+                    Cid = cid
                 };
                 await repository.CreateFileDeal(entity);
                 await repository.Commit();

@@ -12,6 +12,7 @@ using CloudSpeed.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace CloudSpeed.BackgroundServices
 {
@@ -43,13 +44,15 @@ namespace CloudSpeed.BackgroundServices
         private readonly ConcurrentDictionary<string, DateTime> _processingDealIds = new ConcurrentDictionary<string, DateTime>();
         private readonly ConcurrentDictionary<string, long> _processingDealIdBytes = new ConcurrentDictionary<string, long>();
         private readonly ConcurrentDictionary<string, long> _transferingDealIdBytes = new ConcurrentDictionary<string, long>();
+        private readonly DealerService _dealerService;
 
-        public LotusWorker(ILogger<LotusWorker> logger, CloudSpeedManager cloudSpeedManager, LotusClientSetting lotusClientSetting, UploadSetting uploadSetting)
+        public LotusWorker(ILogger<LotusWorker> logger, CloudSpeedManager cloudSpeedManager, LotusClientSetting lotusClientSetting, UploadSetting uploadSetting, DealerService dealerService)
         {
             _logger = logger;
             _cloudSpeedManager = cloudSpeedManager;
             _lotusClientSetting = lotusClientSetting;
             _uploadSetting = uploadSetting;
+            _dealerService = dealerService;
         }
 
         private async Task CreateSentryBox1(CancellationToken stoppingToken)
@@ -160,7 +163,7 @@ namespace CloudSpeed.BackgroundServices
                                         _logger.LogDebug(string.Format("lotus client deal status: {0} {1} {2}", fileDeal.Cid, fileDeal.DealId, dealInfo.Result.State.ToString()));
                                     }
                                 }
-                                catch (System.Exception ex)
+                                catch (Exception ex)
                                 {
                                     _logger.LogError(0, ex, "lotus client get deal info fail:" + ex.ToString());
                                 }
@@ -171,7 +174,7 @@ namespace CloudSpeed.BackgroundServices
                     await Task.Delay(10000, stoppingToken);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(0, ex, "SentryBox error:" + ex.ToString());
             }
@@ -185,6 +188,23 @@ namespace CloudSpeed.BackgroundServices
             try
             {
                 var lotusClient = GlobalServices.ServiceProvider.GetService<LotusClient>();
+                foreach (var miner in lotusClient.MinerClients)
+                {
+                    var minerInfo = await lotusClient.StateMinerInfo(new StateMinerInfoRequest { Miner = miner.Key });
+                    if (minerInfo.Success)
+                    {
+                        _logger.LogInformation("ClientQueryAsk for {miner}", miner.Key);
+                        var ask = await lotusClient.ClientQueryAsk(new ClientQueryAskRequest
+                        {
+                            PeerId = minerInfo.Result.PeerId,
+                            Miner = miner.Key
+                        });
+                        if (ask.Success)
+                        {
+                            _logger.LogInformation("ClientQueryAsk for {miner}: {ask}", miner.Key, JsonConvert.SerializeObject(ask));
+                        }
+                    }
+                }
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     {
@@ -203,9 +223,25 @@ namespace CloudSpeed.BackgroundServices
                                 var path = _uploadSetting.GetStoragePath(fileCid.Id);
                                 if (File.Exists(path))
                                 {
+                                    var fileSize = new FileInfo(path).Length;
+                                    if (fileSize >= _uploadSetting.MaxFileSize && _uploadSetting.MaxFileSize > 0)
+                                    {
+                                        var error = $"file size should be less that {fileSize} < {_uploadSetting.MaxFileSize} ";
+                                        await _cloudSpeedManager.UpdateFileCid(fileCid.Id, FileCidStatus.Failed, error);
+                                        _logger.LogWarning("Lotus ClientImport fail : {0} {1}", error, path);
+                                        continue;
+                                    }
+                                    if (fileSize <= _uploadSetting.MinFileSize)
+                                    {
+                                        var error = $"file size should be more that {fileSize} < {_uploadSetting.MinFileSize} ";
+                                        await _cloudSpeedManager.UpdateFileCid(fileCid.Id, FileCidStatus.Failed, error);
+                                        _logger.LogWarning("Lotus ClientImport fail : {0} {1}", error, path);
+                                        continue;
+                                    }
                                     var cid = string.Empty;
                                     try
                                     {
+                                        _logger.LogInformation("Lotus ClientImport: {cid}", cid);
                                         var result = await lotusClient.ClientImport(new FileRef
                                         {
                                             Path = path,
@@ -214,17 +250,21 @@ namespace CloudSpeed.BackgroundServices
                                         if (result.Success)
                                         {
                                             cid = result.Result.Root.Value;
-                                            await _cloudSpeedManager.UpdateFileCid(fileCid.Id, cid, FileCidStatus.Success);
                                             _logger.LogInformation("Lotus ClientImport: {cid}", cid);
+                                            await _cloudSpeedManager.UpdateFileCid(fileCid.Id, cid, FileCidStatus.Success);
+                                            _logger.LogWarning(0, string.Format("client deal size ..."));
+                                            var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
+                                            if (dealSize.Success)
+                                            {
+                                                _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
+                                                await _cloudSpeedManager.UpdateFileCidDealSize(fileCid.Id, dealSize.Result.PieceSize, dealSize.Result.PayloadSize);
+                                            }
+                                            await _cloudSpeedManager.CreateFileDeal(cid);
                                         }
                                     }
-                                    catch (System.Exception ex)
+                                    catch (Exception ex)
                                     {
                                         _logger.LogError(0, ex, "Lotus ClientImport fail:" + ex.ToString());
-                                    }
-                                    if (!string.IsNullOrEmpty(cid))
-                                    {
-                                        var fdId = await _cloudSpeedManager.CreateFileDeal(cid, null, 0);
                                     }
                                 }
                             }
@@ -234,13 +274,13 @@ namespace CloudSpeed.BackgroundServices
                     await Task.Delay(5000, stoppingToken);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(0, ex, "LotusWorker error:" + ex.ToString());
             }
         }
 
-        private async Task ClientStartDeal(LotusClient lotusClient, string fdId, string cid, CancellationToken stoppingToken)
+        private async Task ClientStartDeal(LotusClient lotusClient, string fileDealId, string cid, CancellationToken stoppingToken)
         {
             try
             {
@@ -278,19 +318,29 @@ namespace CloudSpeed.BackgroundServices
                 if (fileCid == null)
                 {
                     _logger.LogError(0, string.Format("fileCid not found {0}.", cid));
-                    await _cloudSpeedManager.UpdateFileDeal(fdId, FileDealStatus.Failed, "fileCid not found");
+                    await _cloudSpeedManager.UpdateFileDeal(fileDealId, FileDealStatus.Failed, "fileCid not found");
                     return;
                 }
                 var fileFullPath = _uploadSetting.GetStoragePath(fileCid.Id);
                 if (!File.Exists(fileFullPath))
                 {
                     _logger.LogError(0, string.Format("file not found {0}.", cid));
-                    await _cloudSpeedManager.UpdateFileDeal(fdId, FileDealStatus.Failed, "file not found");
+                    await _cloudSpeedManager.UpdateFileDeal(fileDealId, FileDealStatus.Failed, "file not found");
                     return;
                 }
                 _logger.LogInformation("query file length: {path}", fileFullPath);
                 var fileSize = new FileInfo(fileFullPath).Length;
-                var miner = _lotusClientSetting.GetMinerByFileSize(fileSize, true);
+
+                var online = fileSize < SectorSizeConstants.Bytes512MiB;
+
+                var miner = _lotusClientSetting.GetMinerByFileSize(fileSize, online);
+
+                if (miner == null)
+                {
+                    online = !online;
+                    miner = _lotusClientSetting.GetMinerByFileSize(fileSize, online);
+                }
+
                 if (miner == null)
                 {
                     _logger.LogError(0, string.Format("can't found any miner for :{0} {1}.", cid, fileSize));
@@ -316,88 +366,43 @@ namespace CloudSpeed.BackgroundServices
                         _logger.LogError(0, string.Format("can't query ask from :{0} {1}.", minerInfo.Result.PeerId, miner));
                         return;
                     }
-                    if (!decimal.TryParse(ask.Result.Price, out decimal arp))
+                    if (!decimal.TryParse(ask.Result.Price, out askingPrice))
                     {
                         _logger.LogError(0, string.Format("can't parse ask price :{0}.", ask.Result.Price));
                         return;
                     }
-
-                    _logger.LogWarning(0, string.Format("client deal size ..."));
-                    var dealSize = await lotusClient.ClientDealSize(new Cid { Value = cid });
-                    if (!dealSize.Success)
-                    {
-                        _logger.LogError(0, string.Format("can't client deal size for {0}.", cid));
-                        return;
-                    }
-                    _logger.LogWarning(0, string.Format("client deal size ...{0}", dealSize.Result.PieceSize));
-                    askingPrice = (long)((arp * dealSize.Result.PieceSize) / (1 << 30)) + 1;
-
-                    if (askingPrice == 0)
-                    {
-                        _logger.LogError(0, "asking price should be more than zero.");
-                        return;
-                    }
                 }
+
+                if (askingPrice == 0)
+                {
+                    _logger.LogError(0, "asking price should be more than zero.");
+                    return;
+                }
+
+                _logger.LogInformation("will use askingPrice {askingPrice} for miner {miner}", askingPrice, miner.Miner);
+
                 var minDealDuration = 180 * LotusConstants.EpochsInDay;
                 var dealRequest = new ClientStartDealRequest
                 {
                     DataCid = cid,
                     Miner = miner.Miner,
-                    Price = askingPrice.ToString(), //Price per GiB
-                    Duration = minDealDuration
+                    Duration = minDealDuration,
+                    AskingPrice = askingPrice
                 };
-                var dealParams = await CreateTTGraphsyncClientStartDealParams(lotusClient, dealRequest);
-                if (dealParams == null)
+
+                if (online)
                 {
-                    _logger.LogError(0, string.Format("CreateTTGraphsyncClientStartDealParams empty."));
-                    return;
-                }
-                _logger.LogInformation("lotus client start dealing: {dataCid} (datacid) {miner} {price} {duration}", cid, dealRequest.Miner, dealRequest.Price, dealRequest.Duration);
-                var dealCid = await lotusClient.ClientStartDeal(dealParams);
-                if (dealCid.Success)
-                {
-                    var did = dealCid.Result.Value;
-                    _logger.LogInformation("lotus client start deal result: {datacid}(datacid) - {dealcid} (dealcid) {price} {duration}", cid, did, dealRequest.Price, dealRequest.Duration);
-                    await _cloudSpeedManager.UpdateFileDeal(fdId, miner.Miner, did, FileDealStatus.Processing);
-                    _processingDealIds.AddOrUpdate(did, key => DateTime.Now, (key, oldDt) => DateTime.Now);
-                    _processingDealIdBytes.AddOrUpdate(did, key => fileSize, (key, oldDt) => fileSize);
+                    await _dealerService.OnlineExecute(fileDealId, fileCid.Id, dealRequest);
                 }
                 else
                 {
-                    _logger.LogError(0, "lotus client start deal failed: {datacid}(datacid) - (errorMessage)", cid, dealCid.Error.Message);
+                    await _dealerService.OfflineExecute(fileDealId, fileCid.Id, dealRequest, stoppingToken);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(0, ex, "lotus client start deal fail:" + ex.ToString());
             }
-        }
-
-        private async Task<ClientStartDealParams> CreateTTGraphsyncClientStartDealParams(LotusClient lotusClient, ClientStartDealRequest model)
-        {
-            var dataRef = new TransferDataRef()
-            {
-                TransferType = TransferType.graphsync.ToString(),
-                Root = new Cid() { Value = model.DataCid },
-            };
-
-            var walletAddress = await lotusClient.WalletDefaultAddress();
-            if (!walletAddress.Success)
-            {
-                _logger.LogError(0, "can't get wallet default address.");
-                return null;
-            }
-            var dealParams = new ClientStartDealParams()
-            {
-                Data = dataRef,
-                Miner = model.Miner,
-                MinBlocksDuration = (ulong)model.Duration,
-                EpochPrice = model.Price,
-                Wallet = walletAddress.Result,
-                VerifiedDeal = false,
-                ProviderCollateral = "0"
-            };
-            return dealParams;
         }
     }
 }
